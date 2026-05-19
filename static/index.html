@@ -29,6 +29,808 @@
                         'pl-muted':  '#6a8fa8',
                         'pl-faint':  '#3a576c',
                         'pl-navy':   '#002D5B',
+                        'pl-sky':    { DEFAULT: '#6EAADC', light: '#9dc4e8', dark: '#4d8fc7' },
+                        'pl-orange': { DEFAULT: '#EF8633', dark: '#d6721e' },
+                    },
+                    boxShadow: {
+                        'pl-sky':    '0 0 0 1px rgba(110,170,220,0.25), 0 8px 24px -6px rgba(110,170,220,0.18)',
+                        'pl-orange': '0 0 0 1px rgba(239,134,51,0.3),  0 8px 24px -6px rgba(239,134,51,0.22)',
+                    },
+                },
+            },
+        };
+    </script>
+    <style>
+        html, body { background: #0B1628; }
+        body { font-family: 'Manrope', system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #1e3254; border-radius: 6px; }
+        ::-webkit-scrollbar-thumb:hover { background: #26406a; }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .spinner { animation: spin 0.7s linear infinite; }
+
+        @keyframes slidein { from { transform: translateY(-12px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        .toast { animation: slidein 0.2s ease-out; }
+
+        [contenteditable="true"]:focus { outline: none; }
+        [contenteditable="true"] { caret-color: #6EAADC; }
+
+        audio { color-scheme: dark; }
+        audio::-webkit-media-controls-panel { background-color: #162844; }
+
+        .scrollbar-none::-webkit-scrollbar { display: none; }
+        .scrollbar-none { scrollbar-width: none; }
+
+        /* Tabs */
+        .tab { color: #6a8fa8; border-bottom: 2px solid transparent; transition: color 0.15s, border-color 0.15s; }
+        .tab:hover { color: #c8dff0; }
+        .tab.active { color: #c8dff0; border-bottom-color: #6EAADC; }
+
+        /* Contenteditable placeholder */
+        [contenteditable][data-placeholder]:empty::before {
+            content: attr(data-placeholder);
+            color: #3a576c;
+            pointer-events: none;
+        }
+
+        /* Sidebar track items */
+        .track-item { transition: background 0.1s, border-color 0.1s; border: 1px solid transparent; }
+        .track-item:hover { background: rgba(30,50,84,0.7); }
+        .track-item.active { background: #162844; border-color: rgba(110,170,220,0.3) !important; }
+
+        /* "All files" view button */
+        .view-all-btn { transition: background 0.1s, border-color 0.1s; border: 1px solid transparent; }
+        .view-all-btn:hover { background: rgba(30,50,84,0.7); }
+        .view-all-btn.active { background: #162844; border-color: rgba(110,170,220,0.3) !important; }
+
+        /* Segment rows */
+        .seg-row { transition: background 0.15s, border-color 0.15s; }
+        .seg-row:hover { background: rgba(110,170,220,0.06); }
+        .seg-row.seg-active { background: rgba(110,170,220,0.12); border-color: rgba(110,170,220,0.4) !important; }
+        .seg-row.seg-active .seg-time { color: #9dc4e8; }
+
+        /* Drop-zone active */
+        .dz-active { border-color: rgba(110,170,220,0.7) !important; background: rgba(110,170,220,0.04); }
+    </style>
+</head>
+<body class="bg-pl-bg text-pl-text h-screen flex flex-col overflow-hidden">
+
+    <!-- ── Top nav ─────────────────────────────────────────────────────── -->
+    <nav class="shrink-0 border-b border-pl-edge/70 bg-pl-bg/90 backdrop-blur z-30">
+        <div class="px-5 py-3 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-lg bg-pl-navy flex items-center justify-center shrink-0 border border-pl-sky/20">
+                    <span class="font-headline font-bold text-[11px] text-white tracking-wide">PL</span>
+                </div>
+                <div>
+                    <div class="font-headline font-semibold text-[15px] leading-none text-pl-text">Minuteman</div>
+                    <div class="font-label text-[11px] text-pl-muted leading-none mt-0.5">Pearl Labs</div>
+                </div>
+            </div>
+            <div class="flex items-center gap-2">
+                <span class="hidden sm:inline-flex items-center gap-1.5 font-label text-xs text-pl-muted px-2.5 py-1 rounded-full border border-pl-edge">
+                    <span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+                    Sign in to save transcripts
+                </span>
+                <button class="font-label text-xs px-3 py-1.5 rounded-full border border-pl-edge hover:border-pl-sky/60 hover:text-pl-text text-pl-muted transition-colors" disabled title="Coming soon">
+                    Sign in
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- ── App body: sidebar + main ────────────────────────────────────── -->
+    <div class="flex flex-1 overflow-hidden">
+
+        <!-- ── Sidebar ─────────────────────────────────────────────────── -->
+        <aside class="w-64 shrink-0 border-r border-pl-edge bg-pl-surf flex flex-col overflow-hidden">
+
+            <!-- Header -->
+            <div class="shrink-0 px-4 py-3 border-b border-pl-edge flex items-center justify-between">
+                <span class="font-headline font-semibold text-sm text-pl-text">Session</span>
+                <span id="trackCountBadge" class="font-label text-xs text-pl-faint">0 files</span>
+            </div>
+
+            <!-- Track list (scrollable) -->
+            <div class="flex-1 overflow-y-auto scrollbar-none px-2 py-2 space-y-0.5">
+
+                <!-- "All files" combined view button -->
+                <button id="viewAllBtn" class="view-all-btn active w-full text-left rounded-lg px-3 py-2">
+                    <div class="flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-3.5 h-3.5 text-pl-sky shrink-0" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+                        <span class="font-label font-semibold text-sm text-pl-text">All files</span>
+                    </div>
+                    <div id="combinedMeta" class="font-label text-xs text-pl-faint mt-0.5 pl-[22px]">No audio yet</div>
+                </button>
+
+                <div class="border-t border-pl-edge/50 mx-1 my-1.5"></div>
+
+                <!-- Individual track items injected here -->
+                <div id="trackItems"></div>
+
+                <!-- Empty hint -->
+                <p id="emptyHint" class="font-label text-xs text-pl-faint text-center pt-4 pb-2 px-3 leading-relaxed">
+                    No files yet.<br/>Use "Add audio" below to start.
+                </p>
+            </div>
+
+            <!-- Model + language settings -->
+            <div class="shrink-0 border-t border-pl-edge px-3 pt-2.5 pb-2">
+                <div class="flex gap-2">
+                    <div class="flex-1 min-w-0">
+                        <label for="model" class="block font-label text-[10px] uppercase tracking-widest text-pl-faint mb-1">Model</label>
+                        <select id="model" class="w-full bg-pl-cont border border-pl-edge text-pl-text rounded-lg px-2 py-1.5 text-xs font-label focus:outline-none focus:border-pl-sky/60">
+                            <option value="tiny">tiny</option>
+                            <option value="base" selected>base</option>
+                            <option value="small">small</option>
+                            <option value="medium">medium</option>
+                            <option value="large">large</option>
+                        </select>
+                    </div>
+                    <div class="w-[68px] shrink-0">
+                        <label for="language" class="block font-label text-[10px] uppercase tracking-widest text-pl-faint mb-1">Lang</label>
+                        <input id="language" type="text" placeholder="auto" maxlength="5"
+                               class="w-full bg-pl-cont border border-pl-edge text-pl-text rounded-lg px-2 py-1.5 text-xs font-label focus:outline-none focus:border-pl-sky/60" />
+                    </div>
+                </div>
+            </div>
+
+            <!-- Add audio button -->
+            <div class="shrink-0 border-t border-pl-edge p-3">
+                <input id="audioFile" type="file" class="hidden"
+                       accept="audio/*,video/*,.m4a,.wav,.mp3,.mp4,.webm,.ogg,.flac" multiple />
+                <button id="addAudioBtn"
+                        class="w-full inline-flex items-center justify-center gap-2 bg-pl-orange hover:bg-pl-orange-dark text-white font-label font-semibold text-sm py-2.5 rounded-full transition-colors shadow-pl-orange">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="w-4 h-4 shrink-0" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                    Add audio
+                </button>
+                <p class="font-label text-[10px] text-pl-faint text-center mt-2 leading-snug">
+                    Not saved without an <span class="text-pl-orange">account</span>
+                </p>
+            </div>
+        </aside>
+
+        <!-- ── Main content ─────────────────────────────────────────────── -->
+        <div class="flex-1 flex flex-col overflow-hidden min-w-0">
+
+            <!-- Status bar -->
+            <div id="statusBar" class="shrink-0 px-5 py-2 border-b border-pl-edge/60 font-body text-sm text-pl-muted min-h-[38px] flex items-center gap-2"></div>
+
+            <!-- Empty state / drop zone (shown when no tracks) -->
+            <div id="noTracksView" class="flex-1 flex items-center justify-center p-8">
+                <div id="uploadZone"
+                     class="w-full max-w-sm rounded-xl border-2 border-dashed border-pl-edge hover:border-pl-sky/50 transition-colors p-12 text-center cursor-pointer">
+                    <div class="w-14 h-14 rounded-full bg-pl-cont border border-pl-edge mx-auto flex items-center justify-center mb-4">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-6 h-6 text-pl-sky" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                    </div>
+                    <div class="font-headline font-semibold text-lg text-pl-text mb-1">Drop audio here</div>
+                    <div class="font-body text-sm text-pl-muted">or use <span class="text-pl-sky font-medium">Add audio</span> in the sidebar</div>
+                    <div class="font-label text-xs text-pl-faint mt-3">.wav · .mp3 · .m4a · .mp4 · .webm · .ogg · .flac</div>
+                    <div class="font-label text-xs text-pl-faint mt-1">Add multiple files for the same session</div>
+                </div>
+            </div>
+
+            <!-- Results view (shown once tracks are added) -->
+            <div id="resultsView" class="hidden flex-1 flex flex-col overflow-hidden">
+
+                <!-- Audio player (single-track view only) -->
+                <div id="audioSection" class="shrink-0 px-5 py-2.5 border-b border-pl-edge/60 hidden">
+                    <audio id="audio" controls class="w-full h-9"></audio>
+                </div>
+
+                <!-- Tabs -->
+                <div class="shrink-0 flex items-center border-b border-pl-edge px-5">
+                    <div class="flex overflow-x-auto scrollbar-none">
+                        <button data-tab="transcript" class="tab active px-4 py-3.5 text-sm font-label font-medium whitespace-nowrap">Transcript</button>
+                        <button data-tab="segments"   class="tab px-4 py-3.5 text-sm font-label font-medium whitespace-nowrap">Segments</button>
+                        <button data-tab="cleaned"    class="tab px-4 py-3.5 text-sm font-label font-medium whitespace-nowrap">Cleaned-up</button>
+                        <button data-tab="minutes"    class="tab px-4 py-3.5 text-sm font-label font-medium whitespace-nowrap">Minutes</button>
+                        <button data-tab="summary"    class="tab px-4 py-3.5 text-sm font-label font-medium whitespace-nowrap">Summary</button>
+                    </div>
+                    <div id="resultMeta" class="ml-auto font-label text-xs text-pl-muted whitespace-nowrap pl-4 shrink-0"></div>
+                </div>
+
+                <!-- Scrollable tab content -->
+                <div class="flex-1 overflow-y-auto">
+
+                    <!-- Transcript tab -->
+                    <div id="tab-transcript" class="tab-panel p-5">
+                        <div class="rounded-lg border border-pl-edge bg-pl-cont focus-within:border-pl-sky/50 transition-colors">
+                            <div id="transcriptEditor" contenteditable="true"
+                                 class="p-4 sm:p-5 min-h-[240px] text-[15px] leading-7 text-pl-text whitespace-pre-wrap font-body"
+                                 data-placeholder="Transcripts will appear here as files are processed…"></div>
+                        </div>
+                        <div class="mt-3 flex flex-wrap items-center justify-between gap-3">
+                            <div id="transcriptStats" class="font-label text-xs text-pl-muted"></div>
+                            <div class="flex gap-2">
+                                <button data-copy="transcript" class="copy-btn inline-flex items-center gap-1.5 font-label text-xs px-3 py-1.5 rounded-full border border-pl-edge hover:border-pl-sky/50 hover:text-pl-text text-pl-muted transition-colors">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-3.5 h-3.5" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                                    Copy
+                                </button>
+                                <button data-download="txt" class="inline-flex items-center gap-1.5 font-label text-xs px-3 py-1.5 rounded-full border border-pl-edge hover:border-pl-sky/50 hover:text-pl-text text-pl-muted transition-colors">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-3.5 h-3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                                    .txt
+                                </button>
+                                <button data-download="srt" class="inline-flex items-center gap-1.5 font-label text-xs px-3 py-1.5 rounded-full border border-pl-edge hover:border-pl-sky/50 hover:text-pl-text text-pl-muted transition-colors">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-3.5 h-3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                                    .srt
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Segments tab -->
+                    <div id="tab-segments" class="tab-panel hidden p-4 sm:p-5">
+                        <div class="flex items-center justify-between mb-3 px-1">
+                            <div id="segmentHint" class="font-label text-xs text-pl-muted">
+                                <span id="segmentCount">0</span> segments
+                            </div>
+                            <button data-copy="segments-timestamps" class="copy-btn font-label text-xs text-pl-muted hover:text-pl-text px-2.5 py-1 rounded-full border border-pl-edge hover:border-pl-sky/50 transition-colors">
+                                Copy with timestamps
+                            </button>
+                        </div>
+                        <div id="segmentsList" class="space-y-1"></div>
+                    </div>
+
+                    <!-- Placeholder tabs -->
+                    <div id="tab-cleaned" class="tab-panel hidden p-5">
+                        <div class="rounded-lg border border-dashed border-pl-edge p-10 text-center">
+                            <div class="font-headline font-semibold text-pl-text">Cleaned-up transcript</div>
+                            <div class="font-body text-sm text-pl-muted mt-1.5">LLM cleanup — coming next.</div>
+                        </div>
+                    </div>
+                    <div id="tab-minutes" class="tab-panel hidden p-5">
+                        <div class="rounded-lg border border-dashed border-pl-edge p-10 text-center">
+                            <div class="font-headline font-semibold text-pl-text">Meeting minutes</div>
+                            <div class="font-body text-sm text-pl-muted mt-1.5">Structured minutes — coming next.</div>
+                        </div>
+                    </div>
+                    <div id="tab-summary" class="tab-panel hidden p-5">
+                        <div class="rounded-lg border border-dashed border-pl-edge p-10 text-center">
+                            <div class="font-headline font-semibold text-pl-text">Summary report</div>
+                            <div class="font-body text-sm text-pl-muted mt-1.5">Executive summary — coming next.</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast container -->
+    <div id="toasts" class="fixed top-16 right-4 z-50 flex flex-col gap-2 max-w-xs"></div>
+
+    <script>
+        // ================================================================
+        // State
+        // ================================================================
+        const state = {
+            tracks: [],          // Track[]
+            activeView: 'combined',  // 'combined' | trackId
+            activeSegmentIdx: -1,
+            currentSegments: [],
+            queueIds: [],
+            queueRunning: false,
+        };
+
+        // ================================================================
+        // Helpers
+        // ================================================================
+        const $ = (sel) => document.querySelector(sel);
+        const $$ = (sel) => Array.from(document.querySelectorAll(sel));
+        const uid = () => Math.random().toString(36).slice(2, 9);
+
+        function fmtTime(t) {
+            if (t == null || isNaN(t)) return '--:--';
+            const m = Math.floor(Math.max(0, t) / 60);
+            const s = Math.floor(Math.max(0, t) % 60);
+            return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+        }
+        function fmtSrtTime(t) {
+            const ms = Math.max(0, Math.floor((t || 0) * 1000));
+            const h = Math.floor(ms / 3600000);
+            const m = Math.floor((ms % 3600000) / 60000);
+            const s = Math.floor((ms % 60000) / 1000);
+            const ml = ms % 1000;
+            return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')},${String(ml).padStart(3,'0')}`;
+        }
+        function fmtBytes(b) {
+            if (!b) return '';
+            if (b < 1048576) return `${(b / 1024).toFixed(1)} KB`;
+            return `${(b / 1048576).toFixed(1)} MB`;
+        }
+        function escHtml(s) {
+            return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+        }
+
+        function toast(msg, kind = 'info') {
+            const el = document.createElement('div');
+            const cls = {
+                info:    'bg-pl-surf border-pl-edge text-pl-text',
+                success: 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400',
+                error:   'bg-red-500/10 border-red-500/30 text-red-400',
+            }[kind] || 'bg-pl-surf border-pl-edge text-pl-text';
+            el.className = `toast ${cls} border px-4 py-2.5 rounded-lg text-sm font-label shadow-lg`;
+            el.textContent = msg;
+            $('#toasts').appendChild(el);
+            setTimeout(() => { el.style.transition = 'opacity 0.2s'; el.style.opacity = '0'; setTimeout(() => el.remove(), 220); }, 2800);
+        }
+
+        function setStatus(text, kind = 'info') {
+            const bar = $('#statusBar');
+            bar.innerHTML = '';
+            if (!text) return;
+            const cls = { info: 'text-pl-muted', loading: 'text-pl-text', success: 'text-emerald-400', error: 'text-red-400' }[kind] || 'text-pl-muted';
+            bar.className = `shrink-0 px-5 py-2 border-b border-pl-edge/60 font-body text-sm min-h-[38px] flex items-center gap-2 ${cls}`;
+            if (kind === 'loading') {
+                const sp = document.createElement('span');
+                sp.className = 'inline-block w-3.5 h-3.5 border-2 border-pl-edge border-t-pl-sky rounded-full spinner shrink-0';
+                bar.appendChild(sp);
+            }
+            const s = document.createElement('span');
+            s.textContent = text;
+            bar.appendChild(s);
+        }
+
+        // ================================================================
+        // Track management
+        // ================================================================
+        function addTrack(file) {
+            const id = uid();
+            const audioUrl = URL.createObjectURL(file);
+            const track = { id, file, audioUrl, status: 'pending', segments: [], text: '', language: null, model: null, durationSec: null, errorMsg: null };
+            state.tracks.push(track);
+
+            // Resolve duration asynchronously
+            const tmp = new Audio(audioUrl);
+            tmp.addEventListener('loadedmetadata', () => { track.durationSec = tmp.duration; renderSidebar(); }, { once: true });
+
+            enqueueTranscription(id);
+            renderSidebar();
+            showResultsView();
+            return id;
+        }
+
+        function removeTrack(id) {
+            const idx = state.tracks.findIndex(t => t.id === id);
+            if (idx < 0) return;
+            URL.revokeObjectURL(state.tracks[idx].audioUrl);
+            state.tracks.splice(idx, 1);
+            if (state.activeView === id) state.activeView = 'combined';
+            renderSidebar();
+            renderMainContent();
+            if (state.tracks.length === 0) showEmptyView();
+        }
+
+        // ================================================================
+        // Transcription queue — one at a time
+        // ================================================================
+        function enqueueTranscription(id) {
+            state.queueIds.push(id);
+            processQueue();
+        }
+
+        async function processQueue() {
+            if (state.queueRunning || state.queueIds.length === 0) return;
+            state.queueRunning = true;
+            const id = state.queueIds.shift();
+            await transcribeTrack(id);
+            state.queueRunning = false;
+            processQueue();
+        }
+
+        async function transcribeTrack(id) {
+            const track = state.tracks.find(t => t.id === id);
+            if (!track) return;
+            track.status = 'transcribing';
+            renderSidebar();
+            const modelName = $('#model').value;
+            setStatus(`Transcribing "${track.file.name}" with ${modelName}…`, 'loading');
+
+            const form = new FormData();
+            form.append('audio', track.file);
+            form.append('model', modelName);
+            const lang = $('#language').value.trim();
+            if (lang) form.append('language', lang);
+
+            try {
+                const res = await fetch('/transcribe', { method: 'POST', body: form });
+                const data = await res.json();
+                if (!res.ok || !data.ok) {
+                    track.status = 'error';
+                    track.errorMsg = data.error || res.statusText;
+                    renderSidebar();
+                    setStatus(`Error: ${track.errorMsg}`, 'error');
+                    toast(`Failed: ${track.file.name}`, 'error');
+                    return;
+                }
+                track.status = 'done';
+                track.text = String(data.text || '').trim();
+                track.segments = (data.segments || []).map(s => ({ ...s, text: String(s.text || '').trim() }));
+                track.language = data.language;
+                track.model = data.model;
+                renderSidebar();
+                renderMainContent();
+                const rem = state.queueIds.length;
+                setStatus(rem > 0 ? `Done "${track.file.name}" · ${rem} more queued…` : `All files transcribed.`, rem > 0 ? 'loading' : 'success');
+                toast(`Done: ${track.file.name}`, 'success');
+            } catch (err) {
+                track.status = 'error';
+                track.errorMsg = err.message;
+                renderSidebar();
+                setStatus(`Request failed: ${err.message}`, 'error');
+                toast(`Failed: ${track.file.name}`, 'error');
+            }
+        }
+
+        // ================================================================
+        // View helpers
+        // ================================================================
+        function showEmptyView() {
+            $('#noTracksView').classList.remove('hidden');
+            $('#resultsView').classList.add('hidden');
+        }
+        function showResultsView() {
+            $('#noTracksView').classList.add('hidden');
+            $('#resultsView').classList.remove('hidden');
+        }
+
+        // ================================================================
+        // Sidebar rendering
+        // ================================================================
+        function renderSidebar() {
+            const count = state.tracks.length;
+            $('#trackCountBadge').textContent = `${count} file${count !== 1 ? 's' : ''}`;
+
+            // Combined meta line
+            const done = state.tracks.filter(t => t.status === 'done').length;
+            const busy = state.tracks.filter(t => t.status === 'transcribing').length;
+            const pending = state.tracks.filter(t => t.status === 'pending').length;
+            const parts = [];
+            if (done)    parts.push(`${done} done`);
+            if (busy)    parts.push(`${busy} transcribing`);
+            if (pending) parts.push(`${pending} pending`);
+            $('#combinedMeta').textContent = parts.length ? parts.join(' · ') : 'No audio yet';
+
+            // Empty hint
+            $('#emptyHint').style.display = count === 0 ? '' : 'none';
+
+            // "All files" active state
+            $('#viewAllBtn').classList.toggle('active', state.activeView === 'combined');
+
+            // Track items
+            const container = $('#trackItems');
+            container.innerHTML = '';
+            state.tracks.forEach(track => {
+                const isActive = state.activeView === track.id;
+
+                let dotHtml;
+                if (track.status === 'transcribing') {
+                    dotHtml = `<span class="inline-block w-3 h-3 border-2 border-pl-edge border-t-pl-sky rounded-full spinner shrink-0 mt-0.5"></span>`;
+                } else if (track.status === 'done') {
+                    dotHtml = `<span class="w-2 h-2 rounded-full bg-emerald-400 shrink-0 mt-1"></span>`;
+                } else if (track.status === 'error') {
+                    dotHtml = `<span class="w-2 h-2 rounded-full bg-red-400 shrink-0 mt-1"></span>`;
+                } else {
+                    dotHtml = `<span class="w-2 h-2 rounded-full bg-pl-edge shrink-0 mt-1"></span>`;
+                }
+
+                const statusLabel = { pending: 'Pending', transcribing: 'Transcribing…', done: 'Done', error: 'Error' }[track.status];
+                const statusColor = { pending: 'text-pl-faint', transcribing: 'text-pl-sky', done: 'text-emerald-400', error: 'text-red-400' }[track.status];
+                const meta = [fmtBytes(track.file.size), track.durationSec ? fmtTime(track.durationSec) : null].filter(Boolean).join(' · ');
+
+                const el = document.createElement('div');
+                el.className = `track-item rounded-lg px-3 py-2.5 cursor-pointer${isActive ? ' active' : ''}`;
+                el.dataset.trackId = track.id;
+                el.innerHTML = `
+                    <div class="flex items-start gap-2">
+                        ${dotHtml}
+                        <div class="flex-1 min-w-0">
+                            <div class="font-label text-sm text-pl-text truncate leading-tight">${escHtml(track.file.name)}</div>
+                            <div class="flex items-center justify-between gap-1 mt-0.5">
+                                <span class="font-label text-[11px] text-pl-faint truncate">${meta}</span>
+                                <span class="font-label text-[11px] ${statusColor} shrink-0">${statusLabel}</span>
+                            </div>
+                        </div>
+                        <button class="track-remove text-pl-faint hover:text-red-400 transition-colors shrink-0 opacity-0 ml-0.5 mt-0.5" data-remove="${track.id}" title="Remove">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="w-3.5 h-3.5 pointer-events-none" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                        </button>
+                    </div>
+                `;
+                el.addEventListener('mouseenter', () => el.querySelector('.track-remove').style.opacity = '1');
+                el.addEventListener('mouseleave', () => el.querySelector('.track-remove').style.opacity = '0');
+                container.appendChild(el);
+            });
+        }
+
+        // ================================================================
+        // Main content rendering
+        // ================================================================
+        function renderMainContent() {
+            if (state.tracks.length === 0) { showEmptyView(); return; }
+            showResultsView();
+
+            let displayText = '', segs = [];
+
+            if (state.activeView === 'combined') {
+                const doneTracks = state.tracks.filter(t => t.status === 'done');
+                if (doneTracks.length > 0) {
+                    segs = doneTracks.flatMap(t => t.segments);
+                    displayText = doneTracks.length > 1
+                        ? doneTracks.map(t => t.text).join('\n\n— — —\n\n')
+                        : doneTracks[0].text;
+                }
+                // Audio player hidden in combined view
+                $('#audioSection').classList.add('hidden');
+                $('#audio').src = '';
+                // Segment hint
+                $('#segmentHint').innerHTML = `<span id="segmentCount">${segs.length}</span> segments`;
+            } else {
+                const track = state.tracks.find(t => t.id === state.activeView);
+                if (track && track.status === 'done') {
+                    segs = track.segments;
+                    displayText = track.text;
+                    // Show audio player
+                    $('#audio').src = track.audioUrl;
+                    $('#audioSection').classList.remove('hidden');
+                } else {
+                    $('#audioSection').classList.add('hidden');
+                    $('#audio').src = '';
+                }
+                $('#segmentHint').innerHTML = `<span id="segmentCount">${segs.length}</span> segments · click a timestamp to seek`;
+            }
+
+            state.currentSegments = segs;
+            $('#transcriptEditor').textContent = displayText;
+            updateStats();
+            renderSegmentsList();
+            updateResultMeta();
+        }
+
+        function updateResultMeta() {
+            const parts = [];
+            if (state.activeView === 'combined') {
+                const done = state.tracks.filter(t => t.status === 'done');
+                if (done.length) parts.push(`${done.length} file${done.length > 1 ? 's' : ''} combined`);
+            } else {
+                const t = state.tracks.find(tr => tr.id === state.activeView);
+                if (t) {
+                    if (t.language) parts.push(`lang: ${t.language}`);
+                    if (t.model) parts.push(`model: ${t.model}`);
+                }
+            }
+            $('#resultMeta').textContent = parts.join(' · ');
+        }
+
+        function updateStats() {
+            const text = $('#transcriptEditor').textContent || '';
+            const words = text.trim().split(/\s+/).filter(Boolean).length;
+            $('#transcriptStats').textContent = text.trim()
+                ? `${words.toLocaleString()} words · ${text.length.toLocaleString()} chars`
+                : '';
+        }
+
+        // ================================================================
+        // Segments list
+        // ================================================================
+        function renderSegmentsList() {
+            const list = $('#segmentsList');
+            list.innerHTML = '';
+            const segs = state.currentSegments;
+            const sc = document.getElementById('segmentCount');
+            if (sc) sc.textContent = segs.length;
+
+            segs.forEach((seg, idx) => {
+                const row = document.createElement('div');
+                row.className = 'seg-row group flex items-start gap-3 rounded-lg border border-pl-edge px-3 py-2.5';
+                row.dataset.idx = idx;
+
+                const timeBtn = document.createElement('button');
+                timeBtn.className = 'seg-time shrink-0 font-mono text-xs text-pl-muted hover:text-pl-sky transition-colors mt-1 tabular-nums';
+                timeBtn.textContent = fmtTime(seg.start);
+                timeBtn.title = `Seek to ${fmtTime(seg.start)}`;
+                timeBtn.addEventListener('click', () => {
+                    if (state.activeView === 'combined') return;
+                    const audio = $('#audio');
+                    if (!audio.src) return;
+                    audio.currentTime = seg.start;
+                    audio.play();
+                });
+
+                const textEl = document.createElement('div');
+                textEl.className = 'flex-1 text-[14.5px] leading-6 text-pl-text outline-none rounded px-1 -mx-1 hover:bg-white/[0.02] focus:bg-white/[0.03] font-body';
+                textEl.contentEditable = 'true';
+                textEl.spellcheck = true;
+                textEl.textContent = seg.text;
+                textEl.addEventListener('input', () => {
+                    state.currentSegments[idx].text = textEl.textContent.trim();
+                    if (state.activeView !== 'combined') {
+                        const track = state.tracks.find(t => t.id === state.activeView);
+                        if (track && track.segments[idx]) {
+                            track.segments[idx].text = textEl.textContent.trim();
+                            track.text = track.segments.map(s => s.text).join(' ').trim();
+                            $('#transcriptEditor').textContent = track.text;
+                            updateStats();
+                        }
+                    }
+                });
+
+                const dur = (seg.end - seg.start) || 0;
+                const meta = document.createElement('div');
+                meta.className = 'shrink-0 font-mono text-[10px] text-pl-faint mt-1.5 tabular-nums opacity-0 group-hover:opacity-100 transition-opacity';
+                meta.textContent = `${dur.toFixed(1)}s`;
+
+                row.appendChild(timeBtn);
+                row.appendChild(textEl);
+                row.appendChild(meta);
+                list.appendChild(row);
+            });
+        }
+
+        // Audio timeupdate → highlight active segment
+        $('#audio').addEventListener('timeupdate', () => {
+            const t = $('#audio').currentTime;
+            let found = -1;
+            for (let i = 0; i < state.currentSegments.length; i++) {
+                const s = state.currentSegments[i];
+                if (t >= s.start && t < s.end) { found = i; break; }
+            }
+            if (found === state.activeSegmentIdx) return;
+            state.activeSegmentIdx = found;
+            $$('#segmentsList .seg-row').forEach(row => row.classList.toggle('seg-active', Number(row.dataset.idx) === found));
+            if (!$('#tab-segments').classList.contains('hidden') && found >= 0) {
+                const active = $(`#segmentsList .seg-row[data-idx="${found}"]`);
+                if (active) {
+                    const lr = $('#segmentsList').getBoundingClientRect();
+                    const ar = active.getBoundingClientRect();
+                    if (ar.top < lr.top || ar.bottom > lr.bottom) active.scrollIntoView({ block: 'center', behavior: 'smooth' });
+                }
+            }
+        });
+
+        // ================================================================
+        // Sidebar events
+        // ================================================================
+        $('#viewAllBtn').addEventListener('click', () => {
+            state.activeView = 'combined';
+            renderSidebar();
+            renderMainContent();
+        });
+
+        $('#trackItems').addEventListener('click', e => {
+            const removeBtn = e.target.closest('[data-remove]');
+            if (removeBtn) { removeTrack(removeBtn.dataset.remove); return; }
+            const item = e.target.closest('.track-item');
+            if (item?.dataset.trackId) {
+                state.activeView = item.dataset.trackId;
+                renderSidebar();
+                renderMainContent();
+            }
+        });
+
+        // ================================================================
+        // File input
+        // ================================================================
+        $('#addAudioBtn').addEventListener('click', () => $('#audioFile').click());
+        $('#audioFile').addEventListener('change', () => {
+            Array.from($('#audioFile').files).forEach(addTrack);
+            $('#audioFile').value = '';
+        });
+
+        // ================================================================
+        // Drop zone (empty state + anywhere on page)
+        // ================================================================
+        const uploadZone = $('#uploadZone');
+        uploadZone.addEventListener('click', () => $('#audioFile').click());
+
+        const AUDIO_EXT = /\.(m4a|wav|mp3|mp4|webm|ogg|flac)$/i;
+        function isAudioFile(f) { return f.type.startsWith('audio/') || f.type.startsWith('video/') || AUDIO_EXT.test(f.name); }
+
+        document.addEventListener('dragover', e => {
+            e.preventDefault();
+            if (!$('#noTracksView').classList.contains('hidden')) uploadZone.classList.add('dz-active');
+        });
+        document.addEventListener('dragleave', e => {
+            if (!e.relatedTarget) uploadZone.classList.remove('dz-active');
+        });
+        document.addEventListener('drop', e => {
+            e.preventDefault();
+            uploadZone.classList.remove('dz-active');
+            const files = Array.from(e.dataTransfer.files).filter(isAudioFile);
+            if (files.length) files.forEach(addTrack);
+        });
+
+        // ================================================================
+        // Tabs
+        // ================================================================
+        $$('.tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                $$('.tab').forEach(t => t.classList.remove('active'));
+                $$('.tab-panel').forEach(p => p.classList.add('hidden'));
+                tab.classList.add('active');
+                $(`#tab-${tab.dataset.tab}`).classList.remove('hidden');
+            });
+        });
+
+        // Transcript editor input
+        $('#transcriptEditor').addEventListener('input', () => {
+            updateStats();
+            if (state.activeView !== 'combined') {
+                const track = state.tracks.find(t => t.id === state.activeView);
+                if (track) track.text = $('#transcriptEditor').textContent || '';
+            }
+        });
+
+        // ================================================================
+        // Copy / download
+        // ================================================================
+        $$('.copy-btn').forEach(btn => btn.addEventListener('click', async () => {
+            const kind = btn.dataset.copy;
+            let text = '';
+            if (kind === 'transcript') text = $('#transcriptEditor').textContent || '';
+            else if (kind === 'segments-timestamps')
+                text = state.currentSegments.map(s => `[${fmtTime(s.start)} → ${fmtTime(s.end)}] ${s.text}`).join('\n');
+            if (!text.trim()) { toast('Nothing to copy yet', 'info'); return; }
+            try { await navigator.clipboard.writeText(text); toast('Copied to clipboard', 'success'); }
+            catch { toast('Copy failed', 'error'); }
+        }));
+
+        $$('[data-download]').forEach(btn => btn.addEventListener('click', () => {
+            const kind = btn.dataset.download;
+            const baseName = state.activeView === 'combined'
+                ? 'session-transcript'
+                : (state.tracks.find(t => t.id === state.activeView)?.file.name || 'transcript').replace(/\.[^.]+$/, '');
+            if (kind === 'txt') {
+                const text = $('#transcriptEditor').textContent || '';
+                if (!text.trim()) { toast('Nothing to download yet', 'info'); return; }
+                dl(`${baseName}.txt`, text, 'text/plain');
+            } else if (kind === 'srt') {
+                if (!state.currentSegments.length) { toast('Nothing to download yet', 'info'); return; }
+                const srt = state.currentSegments.map((s, i) => `${i+1}\n${fmtSrtTime(s.start)} --> ${fmtSrtTime(s.end)}\n${s.text}\n`).join('\n');
+                dl(`${baseName}.srt`, srt, 'application/x-subrip');
+            }
+        }));
+
+        function dl(name, content, mime) {
+            const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(new Blob([content], { type: mime })), download: name });
+            a.click();
+            URL.revokeObjectURL(a.href);
+        }
+
+        // Init
+        renderSidebar();
+        updateStats();
+    </script>
+</body>
+</html>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Manrope:wght@300;400;500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        headline: ['"Space Grotesk"', 'system-ui', 'sans-serif'],
+                        body:     ['Manrope', 'system-ui', 'sans-serif'],
+                        label:    ['Inter', 'system-ui', 'sans-serif'],
+                        sans:     ['Manrope', 'system-ui', 'sans-serif'],
+                        mono:     ['"JetBrains Mono"', 'ui-monospace', 'monospace'],
+                    },
+                    colors: {
+                        'pl-bg':     '#0B1628',
+                        'pl-surf':   '#112240',
+                        'pl-cont':   '#162844',
+                        'pl-edge':   '#1e3254',
+                        'pl-text':   '#c8dff0',
+                        'pl-muted':  '#6a8fa8',
+                        'pl-faint':  '#3a576c',
+                        'pl-navy':   '#002D5B',
                         'pl-sky':  { DEFAULT: '#6EAADC', light: '#9dc4e8', dark: '#4d8fc7' },
                         'pl-orange': { DEFAULT: '#EF8633', dark: '#d6721e' },
                     },
