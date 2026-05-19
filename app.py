@@ -14,7 +14,6 @@ Then open http://127.0.0.1:8000 in your browser.
 from __future__ import annotations
 
 import os
-import shutil
 import tempfile
 import uuid
 from datetime import datetime
@@ -22,6 +21,7 @@ from pathlib import Path
 from typing import Optional
 
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
@@ -35,6 +35,32 @@ STATIC_DIR = APP_DIR / "static"
 TRANSCRIPTS_DIR = APP_DIR / "transcripts"
 TRANSCRIPTS_DIR.mkdir(exist_ok=True)
 
+
+# --------------------------------------------------------------------------- #
+# Upload / validation config
+# --------------------------------------------------------------------------- #
+
+# Maximum accepted upload size. Override with MAX_UPLOAD_BYTES env var.
+MAX_UPLOAD_BYTES = int(os.environ.get("MAX_UPLOAD_BYTES", str(500 * 1024 * 1024)))  # 500 MB
+
+# Allowed audio/video file extensions.
+ALLOWED_EXTENSIONS = {
+    ".wav", ".mp3", ".m4a", ".mp4", ".webm",
+    ".ogg", ".flac", ".aac", ".opus", ".aiff",
+    ".aif", ".caf", ".wma",
+}
+
+# Allowed MIME-type prefixes (browser may send "audio/" or "video/" types).
+ALLOWED_CONTENT_TYPE_PREFIXES = ("audio/", "video/")
+
+# Allowed Whisper model names — guards against arbitrary strings reaching load_model.
+ALLOWED_MODELS = {"tiny", "base", "small", "medium", "large"}
+
+# CORS: comma-separated list of allowed origins, e.g.
+#   CORS_ORIGINS=https://app.example.com,https://staging.example.com
+# Leave empty (default) to allow no cross-origin requests.
+_raw_cors = os.environ.get("CORS_ORIGINS", "")
+CORS_ORIGINS: list[str] = [o.strip() for o in _raw_cors.split(",") if o.strip()]
 
 # --------------------------------------------------------------------------- #
 # Whisper model — loaded lazily so the server starts fast
@@ -70,6 +96,14 @@ def get_model(model_name: str | None = None):
 
 app = FastAPI(title="Minuteman", version="0.1.0")
 
+if CORS_ORIGINS:
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=CORS_ORIGINS,
+        allow_methods=["GET", "POST"],
+        allow_headers=["*"],
+    )
+
 
 @app.get("/")
 def index():
@@ -99,14 +133,50 @@ async def transcribe(
     if audio.filename is None:
         raise HTTPException(status_code=400, detail="No file uploaded.")
 
-    suffix = Path(audio.filename).suffix or ".wav"
+    # --- Validate model name (prevents arbitrary strings reaching whisper.load_model) ---
+    if model not in ALLOWED_MODELS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid model '{model}'. Allowed: {', '.join(sorted(ALLOWED_MODELS))}.",
+        )
 
-    # Write the upload to a temp file so whisper / ffmpeg can read from disk.
-    with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
-        shutil.copyfileobj(audio.file, tmp)
-        tmp_path = Path(tmp.name)
+    # --- Validate file extension ---
+    suffix = Path(audio.filename).suffix.lower() or ".wav"
+    if suffix not in ALLOWED_EXTENSIONS:
+        raise HTTPException(
+            status_code=415,
+            detail=f"Unsupported file type '{suffix}'. "
+                   f"Allowed: {', '.join(sorted(ALLOWED_EXTENSIONS))}.",
+        )
 
+    # --- Validate MIME type (when the browser provides one) ---
+    content_type = (audio.content_type or "").split(";")[0].strip().lower()
+    if content_type and not any(content_type.startswith(p) for p in ALLOWED_CONTENT_TYPE_PREFIXES):
+        raise HTTPException(
+            status_code=415,
+            detail=f"Unsupported content type '{content_type}'.",
+        )
+
+    # --- Stream to a temp file, enforcing the size cap ---
+    tmp_path: Optional[Path] = None
     try:
+        tmp_fd, tmp_name = tempfile.mkstemp(suffix=suffix)
+        tmp_path = Path(tmp_name)
+        total_bytes = 0
+        with os.fdopen(tmp_fd, "wb") as tmp_fh:
+            while True:
+                chunk = await audio.read(1024 * 1024)  # read 1 MB at a time
+                if not chunk:
+                    break
+                total_bytes += len(chunk)
+                if total_bytes > MAX_UPLOAD_BYTES:
+                    raise HTTPException(
+                        status_code=413,
+                        detail=f"File too large. Maximum allowed size is "
+                               f"{MAX_UPLOAD_BYTES // (1024 * 1024)} MB.",
+                    )
+                tmp_fh.write(chunk)
+
         whisper_model = get_model(model)
         kwargs: dict = {}
         if language:
@@ -141,16 +211,19 @@ async def transcribe(
                 "source_filename": audio.filename,
             }
         )
+    except HTTPException:
+        raise
     except Exception as exc:  # noqa: BLE001
         return JSONResponse(
             status_code=500,
             content={"ok": False, "error": str(exc)},
         )
     finally:
-        try:
-            tmp_path.unlink(missing_ok=True)
-        except Exception:
-            pass
+        if tmp_path is not None:
+            try:
+                tmp_path.unlink(missing_ok=True)
+            except Exception:
+                pass
 
 
 # --------------------------------------------------------------------------- #
@@ -206,7 +279,7 @@ if __name__ == "__main__":
 
     uvicorn.run(
         "app:app",
-        host="127.0.0.1",
-        port=8000,
+        host=os.environ.get("HOST", "0.0.0.0"),
+        port=int(os.environ.get("PORT", "8000")),
         reload=False,
     )
