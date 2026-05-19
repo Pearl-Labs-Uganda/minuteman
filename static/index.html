@@ -164,9 +164,16 @@
         min-width: 0 !important;
         border-color: transparent !important;
       }
-      aside.src-collapsed { width: 3rem !important; min-width: 3rem !important; }
-      .src-collapsed .collapse-hide { display: none !important; }
-      .src-collapsed .collapse-show { display: flex !important; }
+      aside.src-collapsed {
+        width: 3rem !important;
+        min-width: 3rem !important;
+      }
+      .src-collapsed .collapse-hide {
+        display: none !important;
+      }
+      .src-collapsed .collapse-show {
+        display: flex !important;
+      }
       .panel-toggle {
         transition:
           color 0.15s,
@@ -265,20 +272,75 @@
         class="w-56 shrink-0 border-r border-pl-edge bg-pl-surf flex flex-col overflow-hidden"
       >
         <!-- Icon strip (visible only when src-collapsed) -->
-        <div class="collapse-show hidden flex-col items-center gap-1.5 py-3 px-1 flex-1">
-          <button title="Sessions" onclick="document.getElementById('toggleSources').click()" class="w-8 h-8 rounded-lg hover:bg-pl-cont flex items-center justify-center text-pl-muted hover:text-pl-text transition-colors">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-4 h-4" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        <div
+          class="collapse-show hidden flex-col items-center gap-1.5 py-3 px-1 flex-1"
+        >
+          <button
+            title="Sessions"
+            onclick="document.getElementById('toggleSources').click()"
+            class="w-8 h-8 rounded-lg hover:bg-pl-cont flex items-center justify-center text-pl-muted hover:text-pl-text transition-colors"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              class="w-4 h-4"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path
+                d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"
+              />
+            </svg>
           </button>
-          <button title="Sources" onclick="document.getElementById('toggleSources').click()" class="w-8 h-8 rounded-lg hover:bg-pl-cont flex items-center justify-center text-pl-muted hover:text-pl-text transition-colors">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-4 h-4" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          <button
+            title="Sources"
+            onclick="document.getElementById('toggleSources').click()"
+            class="w-8 h-8 rounded-lg hover:bg-pl-cont flex items-center justify-center text-pl-muted hover:text-pl-text transition-colors"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              class="w-4 h-4"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path
+                d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"
+              />
+              <polyline points="14 2 14 8 20 8" />
+            </svg>
           </button>
           <div class="flex-1"></div>
-          <button id="addSourcesBtnIcon" title="Add sources" class="w-8 h-8 rounded-full bg-pl-orange hover:bg-pl-orange-dark text-white flex items-center justify-center transition-colors mb-1">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="w-4 h-4" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          <button
+            id="addSourcesBtnIcon"
+            title="Add sources"
+            class="w-8 h-8 rounded-full bg-pl-orange hover:bg-pl-orange-dark text-white flex items-center justify-center transition-colors mb-1"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2.5"
+              class="w-4 h-4"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <line x1="12" y1="5" x2="12" y2="19" />
+              <line x1="5" y1="12" x2="19" y2="12" />
+            </svg>
           </button>
         </div>
         <!-- Sessions header + new -->
-        <div class="collapse-hide shrink-0 px-3 pt-3 pb-2 border-b border-pl-edge">
+        <div
+          class="collapse-hide shrink-0 px-3 pt-3 pb-2 border-b border-pl-edge"
+        >
           <div class="flex items-center justify-between mb-2">
             <span
               class="font-label text-[10px] uppercase tracking-widest text-pl-faint"
@@ -298,7 +360,9 @@
         </div>
 
         <!-- Files in active session -->
-        <div class="collapse-hide shrink-0 px-3 pt-2.5 pb-1 border-b border-pl-edge">
+        <div
+          class="collapse-hide shrink-0 px-3 pt-2.5 pb-1 border-b border-pl-edge"
+        >
           <span
             class="font-label text-[10px] uppercase tracking-widest text-pl-faint block mb-2"
             >Sources</span
@@ -1304,7 +1368,9 @@
       $("#addSourcesBtn").addEventListener("click", () =>
         $("#audioFile").click(),
       );
-      document.getElementById("addSourcesBtnIcon").addEventListener("click", () => $("#audioFile").click());
+      document
+        .getElementById("addSourcesBtnIcon")
+        .addEventListener("click", () => $("#audioFile").click());
       $("#audioFile").addEventListener("change", () => {
         Array.from($("#audioFile").files).forEach(addTrack);
         $("#audioFile").value = "";
@@ -1390,7 +1456,8 @@
       function togglePanel(panelId, btnId) {
         const panel = document.getElementById(panelId);
         const btn = document.getElementById(btnId);
-        const collapseClass = panelId === 'sourcesPanel' ? 'src-collapsed' : 'collapsed';
+        const collapseClass =
+          panelId === "sourcesPanel" ? "src-collapsed" : "collapsed";
         const collapsed = panel.classList.toggle(collapseClass);
         btn.classList.toggle("panel-open", !collapsed);
       }
