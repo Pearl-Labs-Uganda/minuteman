@@ -32,10 +32,6 @@
                         'pl-sky':    { DEFAULT: '#6EAADC', light: '#9dc4e8', dark: '#4d8fc7' },
                         'pl-orange': { DEFAULT: '#EF8633', dark: '#d6721e' },
                     },
-                    boxShadow: {
-                        'pl-sky':    '0 0 0 1px rgba(110,170,220,0.25), 0 8px 24px -6px rgba(110,170,220,0.18)',
-                        'pl-orange': '0 0 0 1px rgba(239,134,51,0.3),  0 8px 24px -6px rgba(239,134,51,0.22)',
-                    },
                 },
             },
         };
@@ -43,765 +39,713 @@
     <style>
         html, body { background: #0B1628; }
         body { font-family: 'Manrope', system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
-
-        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar { width: 5px; height: 5px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: #1e3254; border-radius: 6px; }
         ::-webkit-scrollbar-thumb:hover { background: #26406a; }
-
-        @keyframes spin { to { transform: rotate(360deg); } }
-        .spinner { animation: spin 0.7s linear infinite; }
-
-        @keyframes slidein { from { transform: translateY(-12px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-        .toast { animation: slidein 0.2s ease-out; }
-
-        [contenteditable="true"]:focus { outline: none; }
-        [contenteditable="true"] { caret-color: #6EAADC; }
-
-        audio { color-scheme: dark; }
-        audio::-webkit-media-controls-panel { background-color: #162844; }
-
         .scrollbar-none::-webkit-scrollbar { display: none; }
         .scrollbar-none { scrollbar-width: none; }
-
-        /* Tabs */
-        .tab { color: #6a8fa8; border-bottom: 2px solid transparent; transition: color 0.15s, border-color 0.15s; }
-        .tab:hover { color: #c8dff0; }
-        .tab.active { color: #c8dff0; border-bottom-color: #6EAADC; }
-
-        /* Contenteditable placeholder */
-        [contenteditable][data-placeholder]:empty::before {
-            content: attr(data-placeholder);
-            color: #3a576c;
-            pointer-events: none;
-        }
-
-        /* Sidebar track items */
-        .track-item { transition: background 0.1s, border-color 0.1s; border: 1px solid transparent; }
-        .track-item:hover { background: rgba(30,50,84,0.7); }
-        .track-item.active { background: #162844; border-color: rgba(110,170,220,0.3) !important; }
-
-        /* "All files" view button */
-        .view-all-btn { transition: background 0.1s, border-color 0.1s; border: 1px solid transparent; }
-        .view-all-btn:hover { background: rgba(30,50,84,0.7); }
-        .view-all-btn.active { background: #162844; border-color: rgba(110,170,220,0.3) !important; }
-
-        /* Segment rows */
-        .seg-row { transition: background 0.15s, border-color 0.15s; }
-        .seg-row:hover { background: rgba(110,170,220,0.06); }
-        .seg-row.seg-active { background: rgba(110,170,220,0.12); border-color: rgba(110,170,220,0.4) !important; }
-        .seg-row.seg-active .seg-time { color: #9dc4e8; }
-
-        /* Drop-zone active */
-        .dz-active { border-color: rgba(110,170,220,0.7) !important; background: rgba(110,170,220,0.04); }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .spinner { animation: spin 0.7s linear infinite; }
+        @keyframes fadein { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+        .msg-in { animation: fadein 0.18s ease-out; }
+        @keyframes toastin { from { transform: translateY(-10px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        .toast-el { animation: toastin 0.18s ease-out; }
+        [contenteditable="true"]:focus { outline: none; }
+        [contenteditable="true"] { caret-color: #6EAADC; }
+        [contenteditable][data-ph]:empty::before { content: attr(data-ph); color: #3a576c; pointer-events: none; }
+        .session-item { transition: background 0.1s; border: 1px solid transparent; }
+        .session-item:hover { background: rgba(30,50,84,0.6); }
+        .session-item.active { background: #162844; border-color: rgba(110,170,220,0.25); }
+        .output-card { transition: background 0.1s, border-color 0.1s; }
+        .output-card:hover { background: #162844; }
+        .output-card.active { background: #162844; border-color: rgba(110,170,220,0.5) !important; color: #9dc4e8; }
+        .file-item { transition: background 0.1s; border: 1px solid transparent; }
+        .file-item:hover { background: rgba(30,50,84,0.5); }
+        .dz-over { border-color: rgba(110,170,220,0.6) !important; background: rgba(110,170,220,0.03); }
+        audio { color-scheme: dark; }
     </style>
 </head>
 <body class="bg-pl-bg text-pl-text h-screen flex flex-col overflow-hidden">
 
-    <!-- ── Top nav ─────────────────────────────────────────────────────── -->
-    <nav class="shrink-0 border-b border-pl-edge/70 bg-pl-bg/90 backdrop-blur z-30">
-        <div class="px-5 py-3 flex items-center justify-between">
-            <div class="flex items-center gap-3">
-                <div class="w-8 h-8 rounded-lg bg-pl-navy flex items-center justify-center shrink-0 border border-pl-sky/20">
-                    <span class="font-headline font-bold text-[11px] text-white tracking-wide">PL</span>
-                </div>
-                <div>
-                    <div class="font-headline font-semibold text-[15px] leading-none text-pl-text">Minuteman</div>
-                    <div class="font-label text-[11px] text-pl-muted leading-none mt-0.5">Pearl Labs</div>
-                </div>
-            </div>
-            <div class="flex items-center gap-2">
-                <span class="hidden sm:inline-flex items-center gap-1.5 font-label text-xs text-pl-muted px-2.5 py-1 rounded-full border border-pl-edge">
-                    <span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
-                    Sign in to save transcripts
-                </span>
-                <button class="font-label text-xs px-3 py-1.5 rounded-full border border-pl-edge hover:border-pl-sky/60 hover:text-pl-text text-pl-muted transition-colors" disabled title="Coming soon">
-                    Sign in
-                </button>
-            </div>
+<!-- ── Top nav ──────────────────────────────────────────────────────────── -->
+<nav class="shrink-0 h-12 border-b border-pl-edge/70 bg-pl-bg/95 backdrop-blur z-30 flex items-center px-4 gap-3">
+    <div class="flex items-center gap-2.5 shrink-0">
+        <div class="w-7 h-7 rounded-lg bg-pl-navy border border-pl-sky/20 flex items-center justify-center">
+            <span class="font-headline font-bold text-[10px] text-white tracking-wide">PL</span>
         </div>
-    </nav>
-
-    <!-- ── App body: sidebar + main ────────────────────────────────────── -->
-    <div class="flex flex-1 overflow-hidden">
-
-        <!-- ── Sidebar ─────────────────────────────────────────────────── -->
-        <aside class="w-64 shrink-0 border-r border-pl-edge bg-pl-surf flex flex-col overflow-hidden">
-
-            <!-- Header -->
-            <div class="shrink-0 px-4 py-3 border-b border-pl-edge flex items-center justify-between">
-                <span class="font-headline font-semibold text-sm text-pl-text">Session</span>
-                <span id="trackCountBadge" class="font-label text-xs text-pl-faint">0 files</span>
-            </div>
-
-            <!-- Track list (scrollable) -->
-            <div class="flex-1 overflow-y-auto scrollbar-none px-2 py-2 space-y-0.5">
-
-                <!-- "All files" combined view button -->
-                <button id="viewAllBtn" class="view-all-btn active w-full text-left rounded-lg px-3 py-2">
-                    <div class="flex items-center gap-2">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-3.5 h-3.5 text-pl-sky shrink-0" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
-                        <span class="font-label font-semibold text-sm text-pl-text">All files</span>
-                    </div>
-                    <div id="combinedMeta" class="font-label text-xs text-pl-faint mt-0.5 pl-[22px]">No audio yet</div>
-                </button>
-
-                <div class="border-t border-pl-edge/50 mx-1 my-1.5"></div>
-
-                <!-- Individual track items injected here -->
-                <div id="trackItems"></div>
-
-                <!-- Empty hint -->
-                <p id="emptyHint" class="font-label text-xs text-pl-faint text-center pt-4 pb-2 px-3 leading-relaxed">
-                    No files yet.<br/>Use "Add audio" below to start.
-                </p>
-            </div>
-
-            <!-- Model + language settings -->
-            <div class="shrink-0 border-t border-pl-edge px-3 pt-2.5 pb-2">
-                <div class="flex gap-2">
-                    <div class="flex-1 min-w-0">
-                        <label for="model" class="block font-label text-[10px] uppercase tracking-widest text-pl-faint mb-1">Model</label>
-                        <select id="model" class="w-full bg-pl-cont border border-pl-edge text-pl-text rounded-lg px-2 py-1.5 text-xs font-label focus:outline-none focus:border-pl-sky/60">
-                            <option value="tiny">tiny</option>
-                            <option value="base" selected>base</option>
-                            <option value="small">small</option>
-                            <option value="medium">medium</option>
-                            <option value="large">large</option>
-                        </select>
-                    </div>
-                    <div class="w-[68px] shrink-0">
-                        <label for="language" class="block font-label text-[10px] uppercase tracking-widest text-pl-faint mb-1">Lang</label>
-                        <input id="language" type="text" placeholder="auto" maxlength="5"
-                               class="w-full bg-pl-cont border border-pl-edge text-pl-text rounded-lg px-2 py-1.5 text-xs font-label focus:outline-none focus:border-pl-sky/60" />
-                    </div>
-                </div>
-            </div>
-
-            <!-- Add audio button -->
-            <div class="shrink-0 border-t border-pl-edge p-3">
-                <input id="audioFile" type="file" class="hidden"
-                       accept="audio/*,video/*,.m4a,.wav,.mp3,.mp4,.webm,.ogg,.flac" multiple />
-                <button id="addAudioBtn"
-                        class="w-full inline-flex items-center justify-center gap-2 bg-pl-orange hover:bg-pl-orange-dark text-white font-label font-semibold text-sm py-2.5 rounded-full transition-colors shadow-pl-orange">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="w-4 h-4 shrink-0" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                    Add audio
-                </button>
-                <p class="font-label text-[10px] text-pl-faint text-center mt-2 leading-snug">
-                    Not saved without an <span class="text-pl-orange">account</span>
-                </p>
-            </div>
-        </aside>
-
-        <!-- ── Main content ─────────────────────────────────────────────── -->
-        <div class="flex-1 flex flex-col overflow-hidden min-w-0">
-
-            <!-- Status bar -->
-            <div id="statusBar" class="shrink-0 px-5 py-2 border-b border-pl-edge/60 font-body text-sm text-pl-muted min-h-[38px] flex items-center gap-2"></div>
-
-            <!-- Empty state / drop zone (shown when no tracks) -->
-            <div id="noTracksView" class="flex-1 flex items-center justify-center p-8">
-                <div id="uploadZone"
-                     class="w-full max-w-sm rounded-xl border-2 border-dashed border-pl-edge hover:border-pl-sky/50 transition-colors p-12 text-center cursor-pointer">
-                    <div class="w-14 h-14 rounded-full bg-pl-cont border border-pl-edge mx-auto flex items-center justify-center mb-4">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-6 h-6 text-pl-sky" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-                    </div>
-                    <div class="font-headline font-semibold text-lg text-pl-text mb-1">Drop audio here</div>
-                    <div class="font-body text-sm text-pl-muted">or use <span class="text-pl-sky font-medium">Add audio</span> in the sidebar</div>
-                    <div class="font-label text-xs text-pl-faint mt-3">.wav · .mp3 · .m4a · .mp4 · .webm · .ogg · .flac</div>
-                    <div class="font-label text-xs text-pl-faint mt-1">Add multiple files for the same session</div>
-                </div>
-            </div>
-
-            <!-- Results view (shown once tracks are added) -->
-            <div id="resultsView" class="hidden flex-1 flex flex-col overflow-hidden">
-
-                <!-- Audio player (single-track view only) -->
-                <div id="audioSection" class="shrink-0 px-5 py-2.5 border-b border-pl-edge/60 hidden">
-                    <audio id="audio" controls class="w-full h-9"></audio>
-                </div>
-
-                <!-- Tabs -->
-                <div class="shrink-0 flex items-center border-b border-pl-edge px-5">
-                    <div class="flex overflow-x-auto scrollbar-none">
-                        <button data-tab="transcript" class="tab active px-4 py-3.5 text-sm font-label font-medium whitespace-nowrap">Transcript</button>
-                        <button data-tab="segments"   class="tab px-4 py-3.5 text-sm font-label font-medium whitespace-nowrap">Segments</button>
-                        <button data-tab="cleaned"    class="tab px-4 py-3.5 text-sm font-label font-medium whitespace-nowrap">Cleaned-up</button>
-                        <button data-tab="minutes"    class="tab px-4 py-3.5 text-sm font-label font-medium whitespace-nowrap">Minutes</button>
-                        <button data-tab="summary"    class="tab px-4 py-3.5 text-sm font-label font-medium whitespace-nowrap">Summary</button>
-                    </div>
-                    <div id="resultMeta" class="ml-auto font-label text-xs text-pl-muted whitespace-nowrap pl-4 shrink-0"></div>
-                </div>
-
-                <!-- Scrollable tab content -->
-                <div class="flex-1 overflow-y-auto">
-
-                    <!-- Transcript tab -->
-                    <div id="tab-transcript" class="tab-panel p-5">
-                        <div class="rounded-lg border border-pl-edge bg-pl-cont focus-within:border-pl-sky/50 transition-colors">
-                            <div id="transcriptEditor" contenteditable="true"
-                                 class="p-4 sm:p-5 min-h-[240px] text-[15px] leading-7 text-pl-text whitespace-pre-wrap font-body"
-                                 data-placeholder="Transcripts will appear here as files are processed…"></div>
-                        </div>
-                        <div class="mt-3 flex flex-wrap items-center justify-between gap-3">
-                            <div id="transcriptStats" class="font-label text-xs text-pl-muted"></div>
-                            <div class="flex gap-2">
-                                <button data-copy="transcript" class="copy-btn inline-flex items-center gap-1.5 font-label text-xs px-3 py-1.5 rounded-full border border-pl-edge hover:border-pl-sky/50 hover:text-pl-text text-pl-muted transition-colors">
-                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-3.5 h-3.5" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-                                    Copy
-                                </button>
-                                <button data-download="txt" class="inline-flex items-center gap-1.5 font-label text-xs px-3 py-1.5 rounded-full border border-pl-edge hover:border-pl-sky/50 hover:text-pl-text text-pl-muted transition-colors">
-                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-3.5 h-3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                                    .txt
-                                </button>
-                                <button data-download="srt" class="inline-flex items-center gap-1.5 font-label text-xs px-3 py-1.5 rounded-full border border-pl-edge hover:border-pl-sky/50 hover:text-pl-text text-pl-muted transition-colors">
-                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-3.5 h-3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                                    .srt
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Segments tab -->
-                    <div id="tab-segments" class="tab-panel hidden p-4 sm:p-5">
-                        <div class="flex items-center justify-between mb-3 px-1">
-                            <div id="segmentHint" class="font-label text-xs text-pl-muted">
-                                <span id="segmentCount">0</span> segments
-                            </div>
-                            <button data-copy="segments-timestamps" class="copy-btn font-label text-xs text-pl-muted hover:text-pl-text px-2.5 py-1 rounded-full border border-pl-edge hover:border-pl-sky/50 transition-colors">
-                                Copy with timestamps
-                            </button>
-                        </div>
-                        <div id="segmentsList" class="space-y-1"></div>
-                    </div>
-
-                    <!-- Placeholder tabs -->
-                    <div id="tab-cleaned" class="tab-panel hidden p-5">
-                        <div class="rounded-lg border border-dashed border-pl-edge p-10 text-center">
-                            <div class="font-headline font-semibold text-pl-text">Cleaned-up transcript</div>
-                            <div class="font-body text-sm text-pl-muted mt-1.5">LLM cleanup — coming next.</div>
-                        </div>
-                    </div>
-                    <div id="tab-minutes" class="tab-panel hidden p-5">
-                        <div class="rounded-lg border border-dashed border-pl-edge p-10 text-center">
-                            <div class="font-headline font-semibold text-pl-text">Meeting minutes</div>
-                            <div class="font-body text-sm text-pl-muted mt-1.5">Structured minutes — coming next.</div>
-                        </div>
-                    </div>
-                    <div id="tab-summary" class="tab-panel hidden p-5">
-                        <div class="rounded-lg border border-dashed border-pl-edge p-10 text-center">
-                            <div class="font-headline font-semibold text-pl-text">Summary report</div>
-                            <div class="font-body text-sm text-pl-muted mt-1.5">Executive summary — coming next.</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
+        <span class="font-headline font-semibold text-[14px] text-pl-text">Minuteman</span>
+        <span class="font-label text-xs text-pl-faint hidden sm:inline">· Pearl Labs</span>
     </div>
+    <div class="flex-1"></div>
+    <span class="hidden sm:inline-flex items-center gap-1.5 font-label text-xs text-pl-muted px-2.5 py-1 rounded-full border border-pl-edge">
+        <span class="w-1.5 h-1.5 rounded-full bg-amber-400/80"></span>
+        Sign in to save
+    </span>
+    <button class="font-label text-xs px-3 py-1.5 rounded-full border border-pl-edge text-pl-muted hover:text-pl-text hover:border-pl-sky/50 transition-colors" disabled title="Coming soon">Sign in</button>
+</nav>
 
-    <!-- Toast container -->
-    <div id="toasts" class="fixed top-16 right-4 z-50 flex flex-col gap-2 max-w-xs"></div>
+<!-- ── Three-column layout ──────────────────────────────────────────────── -->
+<div class="flex flex-1 overflow-hidden">
 
-    <script>
-        // ================================================================
-        // State
-        // ================================================================
-        const state = {
-            tracks: [],          // Track[]
-            activeView: 'combined',  // 'combined' | trackId
-            activeSegmentIdx: -1,
-            currentSegments: [],
-            queueIds: [],
-            queueRunning: false,
-        };
+    <!-- ════════════════════════════════════════════════════════════════════
+         LEFT — Sources
+    ═══════════════════════════════════════════════════════════════════════ -->
+    <aside class="w-56 shrink-0 border-r border-pl-edge bg-pl-surf flex flex-col overflow-hidden">
 
-        // ================================================================
-        // Helpers
-        // ================================================================
-        const $ = (sel) => document.querySelector(sel);
-        const $$ = (sel) => Array.from(document.querySelectorAll(sel));
-        const uid = () => Math.random().toString(36).slice(2, 9);
+        <!-- Sessions header + new -->
+        <div class="shrink-0 px-3 pt-3 pb-2 border-b border-pl-edge">
+            <div class="flex items-center justify-between mb-2">
+                <span class="font-label text-[10px] uppercase tracking-widest text-pl-faint">Sessions</span>
+                <button id="newSessionBtn" class="font-label text-xs text-pl-sky hover:text-pl-sky-light transition-colors px-1.5 py-0.5 rounded hover:bg-pl-cont">+ New</button>
+            </div>
+            <div id="sessionList" class="space-y-0.5 max-h-32 overflow-y-auto scrollbar-none"></div>
+        </div>
 
-        function fmtTime(t) {
-            if (t == null || isNaN(t)) return '--:--';
-            const m = Math.floor(Math.max(0, t) / 60);
-            const s = Math.floor(Math.max(0, t) % 60);
-            return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+        <!-- Files in active session -->
+        <div class="shrink-0 px-3 pt-2.5 pb-1 border-b border-pl-edge">
+            <span class="font-label text-[10px] uppercase tracking-widest text-pl-faint block mb-2">Sources</span>
+            <div id="fileList" class="space-y-0.5 max-h-40 overflow-y-auto scrollbar-none"></div>
+            <p id="fileEmptyHint" class="font-label text-xs text-pl-faint py-2 text-center leading-snug">No sources yet</p>
+        </div>
+
+        <!-- Spacer -->
+        <div class="flex-1"></div>
+
+        <!-- Model + language -->
+        <div class="shrink-0 px-3 pt-2 border-t border-pl-edge">
+            <div class="flex gap-2">
+                <div class="flex-1 min-w-0">
+                    <label class="block font-label text-[10px] uppercase tracking-widest text-pl-faint mb-1">Model</label>
+                    <select id="model" class="w-full bg-pl-cont border border-pl-edge text-pl-text rounded-lg px-2 py-1.5 text-xs font-label focus:outline-none focus:border-pl-sky/50">
+                        <option value="tiny">tiny</option>
+                        <option value="base" selected>base</option>
+                        <option value="small">small</option>
+                        <option value="medium">medium</option>
+                        <option value="large">large</option>
+                    </select>
+                </div>
+                <div class="w-14 shrink-0">
+                    <label class="block font-label text-[10px] uppercase tracking-widest text-pl-faint mb-1">Lang</label>
+                    <input id="language" type="text" placeholder="auto" maxlength="5"
+                           class="w-full bg-pl-cont border border-pl-edge text-pl-text rounded-lg px-2 py-1.5 text-xs font-label focus:outline-none focus:border-pl-sky/50" />
+                </div>
+            </div>
+        </div>
+
+        <!-- Add sources button -->
+        <div class="shrink-0 p-3">
+            <input id="audioFile" type="file" class="hidden"
+                   accept="audio/*,video/*,.m4a,.wav,.mp3,.mp4,.webm,.ogg,.flac" multiple />
+            <button id="addSourcesBtn"
+                    class="w-full inline-flex items-center justify-center gap-1.5 bg-pl-orange hover:bg-pl-orange-dark text-white font-label font-semibold text-sm py-2 rounded-full transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="w-3.5 h-3.5 shrink-0" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                Add sources
+            </button>
+            <p class="font-label text-[10px] text-pl-faint text-center mt-1.5 leading-snug">Not saved without an <span class="text-pl-orange">account</span></p>
+        </div>
+    </aside>
+
+    <!-- ════════════════════════════════════════════════════════════════════
+         CENTER — Chat
+    ═══════════════════════════════════════════════════════════════════════ -->
+    <main class="flex-1 flex flex-col overflow-hidden border-r border-pl-edge min-w-0">
+
+        <!-- Session title + status -->
+        <div class="shrink-0 h-11 px-5 border-b border-pl-edge flex items-center gap-3">
+            <h1 id="sessionTitle"
+                contenteditable="true"
+                data-ph="Untitled session"
+                class="font-headline font-semibold text-[15px] text-pl-text flex-1 min-w-0 truncate focus:truncate-none"></h1>
+            <div id="statusChip" class="shrink-0 font-label text-xs text-pl-faint"></div>
+        </div>
+
+        <!-- Chat messages (scrollable) -->
+        <div id="chatMessages" class="flex-1 overflow-y-auto p-5 space-y-3">
+            <!-- populated by JS -->
+        </div>
+
+        <!-- Empty state (shown when no messages) -->
+        <div id="chatEmptyState" class="absolute inset-0 flex items-center justify-center pointer-events-none" style="top:92px">
+            <div class="text-center max-w-xs px-6">
+                <div class="w-12 h-12 rounded-full bg-pl-cont border border-pl-edge mx-auto mb-4 flex items-center justify-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-5 h-5 text-pl-sky" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                </div>
+                <div class="font-headline font-semibold text-pl-text mb-1">Drop audio to start</div>
+                <div class="font-body text-sm text-pl-muted">Add audio sources from the left panel, or drag files anywhere on this page</div>
+                <div class="font-label text-xs text-pl-faint mt-2">.wav · .mp3 · .m4a · .mp4 · .webm · .flac</div>
+            </div>
+        </div>
+
+        <!-- Chat input -->
+        <div class="shrink-0 px-4 py-3 border-t border-pl-edge">
+            <div class="flex items-center gap-2 bg-pl-cont border border-pl-edge rounded-xl px-3 py-2 focus-within:border-pl-sky/50 transition-colors">
+                <input id="chatInput" type="text" placeholder="Ask about this session, or refine the transcript…"
+                       class="flex-1 bg-transparent text-sm text-pl-text placeholder-pl-faint font-body focus:outline-none" />
+                <button id="chatSendBtn"
+                        class="w-7 h-7 rounded-lg bg-pl-sky/20 hover:bg-pl-sky/40 text-pl-sky flex items-center justify-center transition-colors shrink-0">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="w-3.5 h-3.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                </button>
+            </div>
+            <p class="font-label text-[10px] text-pl-faint text-center mt-1.5">Runs locally · audio never leaves your machine · AI assistant <span class="text-pl-sky/70">coming soon</span></p>
+        </div>
+    </main>
+
+    <!-- ════════════════════════════════════════════════════════════════════
+         RIGHT — Studio
+    ═══════════════════════════════════════════════════════════════════════ -->
+    <aside class="w-72 shrink-0 bg-pl-surf flex flex-col overflow-hidden">
+
+        <!-- Studio header -->
+        <div class="shrink-0 h-11 px-4 border-b border-pl-edge flex items-center justify-between">
+            <div>
+                <span class="font-headline font-semibold text-sm text-pl-text">Studio</span>
+                <span class="font-label text-xs text-pl-muted ml-2">output documents</span>
+            </div>
+        </div>
+
+        <!-- Output type cards (2-column grid) -->
+        <div class="shrink-0 p-3 grid grid-cols-2 gap-2 border-b border-pl-edge">
+            <button data-out="transcript" class="output-card active border border-pl-edge rounded-lg px-3 py-2.5 text-left">
+                <div class="flex items-center gap-1.5 mb-0.5">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-3.5 h-3.5 text-pl-sky shrink-0" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                    <span class="font-label font-medium text-xs text-pl-text">Transcript</span>
+                </div>
+                <span class="font-label text-[10px] text-pl-faint">.txt · full text</span>
+            </button>
+            <button data-out="segments" class="output-card border border-pl-edge rounded-lg px-3 py-2.5 text-left">
+                <div class="flex items-center gap-1.5 mb-0.5">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-3.5 h-3.5 text-pl-sky shrink-0" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+                    <span class="font-label font-medium text-xs text-pl-text">Segments</span>
+                </div>
+                <span class="font-label text-[10px] text-pl-faint">timestamped</span>
+            </button>
+            <button data-out="srt" class="output-card border border-pl-edge rounded-lg px-3 py-2.5 text-left">
+                <div class="flex items-center gap-1.5 mb-0.5">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-3.5 h-3.5 text-pl-sky shrink-0" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="15" rx="2" ry="2"/><polyline points="17 2 12 7 7 2"/></svg>
+                    <span class="font-label font-medium text-xs text-pl-text">Captions</span>
+                </div>
+                <span class="font-label text-[10px] text-pl-faint">.srt format</span>
+            </button>
+            <button data-out="cleaned" class="output-card border border-pl-edge rounded-lg px-3 py-2.5 text-left opacity-50 cursor-not-allowed" disabled title="Coming soon">
+                <div class="flex items-center gap-1.5 mb-0.5">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-3.5 h-3.5 text-pl-muted shrink-0" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+                    <span class="font-label font-medium text-xs text-pl-text">Cleaned-up</span>
+                </div>
+                <span class="font-label text-[10px] text-pl-faint">AI · soon</span>
+            </button>
+            <button data-out="minutes" class="output-card border border-pl-edge rounded-lg px-3 py-2.5 text-left opacity-50 cursor-not-allowed" disabled title="Coming soon">
+                <div class="flex items-center gap-1.5 mb-0.5">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-3.5 h-3.5 text-pl-muted shrink-0" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                    <span class="font-label font-medium text-xs text-pl-text">Minutes</span>
+                </div>
+                <span class="font-label text-[10px] text-pl-faint">AI · soon</span>
+            </button>
+            <button data-out="summary" class="output-card border border-pl-edge rounded-lg px-3 py-2.5 text-left opacity-50 cursor-not-allowed" disabled title="Coming soon">
+                <div class="flex items-center gap-1.5 mb-0.5">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-3.5 h-3.5 text-pl-muted shrink-0" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                    <span class="font-label font-medium text-xs text-pl-text">Summary</span>
+                </div>
+                <span class="font-label text-[10px] text-pl-faint">AI · soon</span>
+            </button>
+        </div>
+
+        <!-- Preview area (scrollable) -->
+        <div id="studioPreview" class="flex-1 overflow-y-auto p-4">
+            <div id="studioEmpty" class="text-center py-10">
+                <div class="font-label text-xs text-pl-faint leading-relaxed">Transcribe audio to see output documents here</div>
+            </div>
+            <div id="studioContent" class="hidden font-mono text-xs leading-5 text-pl-text whitespace-pre-wrap"></div>
+            <div id="studioPlaceholder" class="hidden rounded-lg border border-dashed border-pl-edge p-6 text-center">
+                <div class="font-label text-xs text-pl-faint">This output is generated by an AI assistant.<br/>Coming in the next version.</div>
+            </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="shrink-0 p-3 border-t border-pl-edge flex gap-2">
+            <button id="studioWordCount" class="font-label text-xs text-pl-faint flex-1 text-left"></button>
+            <button id="studioCopyBtn"
+                    class="inline-flex items-center gap-1.5 font-label text-xs px-3 py-1.5 rounded-full border border-pl-edge hover:border-pl-sky/50 hover:text-pl-text text-pl-muted transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-3 h-3" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                Copy
+            </button>
+            <button id="studioDownloadBtn"
+                    class="inline-flex items-center gap-1.5 font-label text-xs px-3 py-1.5 rounded-full border border-pl-edge hover:border-pl-sky/50 hover:text-pl-text text-pl-muted transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-3 h-3" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                Save
+            </button>
+        </div>
+    </aside>
+</div>
+
+<!-- Toast container -->
+<div id="toasts" class="fixed top-14 right-4 z-50 flex flex-col gap-2 max-w-xs"></div>
+
+<script>
+// ============================================================
+// Utilities
+// ============================================================
+const $ = sel => document.querySelector(sel);
+const $$ = sel => Array.from(document.querySelectorAll(sel));
+const uid = () => Math.random().toString(36).slice(2, 9);
+
+function fmtTime(t) {
+    if (t == null || isNaN(t)) return '--:--';
+    const m = Math.floor(Math.max(0, t) / 60), s = Math.floor(Math.max(0, t) % 60);
+    return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+}
+function fmtSrtTime(t) {
+    const ms = Math.max(0, Math.floor((t || 0) * 1000));
+    const h = Math.floor(ms/3600000), m = Math.floor((ms%3600000)/60000);
+    const s = Math.floor((ms%60000)/1000), ml = ms%1000;
+    return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')},${String(ml).padStart(3,'0')}`;
+}
+function fmtBytes(b) {
+    if (!b) return '';
+    return b < 1048576 ? `${(b/1024).toFixed(1)} KB` : `${(b/1048576).toFixed(1)} MB`;
+}
+function escHtml(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function toast(msg, kind = 'info') {
+    const cls = { info: 'bg-pl-surf border-pl-edge text-pl-text', success: 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300', error: 'bg-red-500/10 border-red-500/30 text-red-400' }[kind] || 'bg-pl-surf border-pl-edge text-pl-text';
+    const el = document.createElement('div');
+    el.className = `toast-el ${cls} border px-4 py-2.5 rounded-lg text-sm font-label shadow-lg`;
+    el.textContent = msg;
+    $('#toasts').appendChild(el);
+    setTimeout(() => { el.style.transition = 'opacity 0.2s'; el.style.opacity = '0'; setTimeout(() => el.remove(), 220); }, 2800);
+}
+
+function dl(name, content, mime) {
+    const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(new Blob([content], { type: mime })), download: name });
+    a.click(); URL.revokeObjectURL(a.href);
+}
+
+// ============================================================
+// State
+// ============================================================
+const state = {
+    sessions: [],
+    activeSessionId: null,
+    activeOutput: 'transcript',
+    queue: [],       // { sessionId, trackId }
+    queueRunning: false,
+};
+
+// Session: { id, name, tracks: Track[], messages: Message[] }
+// Track: { id, file, audioUrl, status:'pending'|'transcribing'|'done'|'error', text, segments, language, model, durationSec, errorMsg }
+// Message: { id, type:'system'|'transcript'|'user', content, trackId? }
+
+function session() { return state.sessions.find(s => s.id === state.activeSessionId) || null; }
+
+function createSession(name) {
+    const s = { id: uid(), name: name || 'Untitled session', tracks: [], messages: [] };
+    state.sessions.push(s);
+    state.activeSessionId = s.id;
+    renderSessions();
+    renderFiles();
+    renderChat();
+    renderStudio();
+    updateSessionTitle();
+    return s;
+}
+
+function switchSession(id) {
+    state.activeSessionId = id;
+    renderSessions();
+    renderFiles();
+    renderChat();
+    renderStudio();
+    updateSessionTitle();
+}
+
+function updateSessionTitle() {
+    const s = session();
+    $('#sessionTitle').textContent = s ? s.name : '';
+}
+
+// ============================================================
+// Track / queue
+// ============================================================
+function addTrack(file) {
+    const s = session();
+    if (!s) return;
+    const id = uid();
+    const audioUrl = URL.createObjectURL(file);
+    const track = { id, file, audioUrl, status: 'pending', text: '', segments: [], language: null, model: null, durationSec: null, errorMsg: null };
+    s.tracks.push(track);
+    // Resolve duration
+    const tmp = new Audio(audioUrl);
+    tmp.addEventListener('loadedmetadata', () => { track.durationSec = tmp.duration; renderFiles(); }, { once: true });
+    addMessage('system', `Added <strong>${escHtml(file.name)}</strong> (${fmtBytes(file.size)})`);
+    state.queue.push({ sessionId: s.id, trackId: id });
+    renderFiles();
+    processQueue();
+}
+
+function removeTrack(trackId) {
+    const s = session();
+    if (!s) return;
+    const idx = s.tracks.findIndex(t => t.id === trackId);
+    if (idx < 0) return;
+    URL.revokeObjectURL(s.tracks[idx].audioUrl);
+    s.tracks.splice(idx, 1);
+    renderFiles();
+    renderStudio();
+}
+
+async function processQueue() {
+    if (state.queueRunning || !state.queue.length) return;
+    state.queueRunning = true;
+    const { sessionId, trackId } = state.queue.shift();
+    await transcribeTrack(sessionId, trackId);
+    state.queueRunning = false;
+    processQueue();
+}
+
+async function transcribeTrack(sessionId, trackId) {
+    const s = state.sessions.find(x => x.id === sessionId);
+    if (!s) return;
+    const track = s.tracks.find(t => t.id === trackId);
+    if (!track) return;
+    const modelName = $('#model').value;
+    track.status = 'transcribing';
+    track.model = modelName;
+    renderFiles();
+    const statusMsgId = addMessage('system', `<span class="inline-flex items-center gap-1.5"><span class="inline-block w-3 h-3 border-2 border-pl-edge border-t-pl-sky rounded-full spinner"></span>Transcribing <strong>${escHtml(track.file.name)}</strong> with <em>${modelName}</em>…</span>`);
+    setStatus(`Transcribing ${track.file.name}…`, true);
+
+    const form = new FormData();
+    form.append('audio', track.file);
+    form.append('model', modelName);
+    const lang = $('#language').value.trim();
+    if (lang) form.append('language', lang);
+
+    try {
+        const res = await fetch('/transcribe', { method: 'POST', body: form });
+        const data = await res.json();
+        // Remove "transcribing…" message
+        removeMessage(statusMsgId);
+        if (!res.ok || !data.ok) {
+            track.status = 'error';
+            track.errorMsg = data.error || res.statusText;
+            addMessage('system', `<span class="text-red-400">✗ Error transcribing <strong>${escHtml(track.file.name)}</strong>: ${escHtml(track.errorMsg)}</span>`);
+            toast(`Failed: ${track.file.name}`, 'error');
+        } else {
+            track.status = 'done';
+            track.text = String(data.text || '').trim();
+            track.segments = (data.segments || []).map(sg => ({ ...sg, text: String(sg.text || '').trim() }));
+            track.language = data.language;
+            track.model = data.model;
+            addTranscriptCard(track);
+            toast(`Done: ${track.file.name}`, 'success');
         }
-        function fmtSrtTime(t) {
-            const ms = Math.max(0, Math.floor((t || 0) * 1000));
-            const h = Math.floor(ms / 3600000);
-            const m = Math.floor((ms % 3600000) / 60000);
-            const s = Math.floor((ms % 60000) / 1000);
-            const ml = ms % 1000;
-            return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')},${String(ml).padStart(3,'0')}`;
-        }
-        function fmtBytes(b) {
-            if (!b) return '';
-            if (b < 1048576) return `${(b / 1024).toFixed(1)} KB`;
-            return `${(b / 1048576).toFixed(1)} MB`;
-        }
-        function escHtml(s) {
-            return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-        }
+        renderFiles();
+        renderStudio();
+        const rem = state.queue.filter(q => q.sessionId === sessionId).length;
+        setStatus(rem > 0 ? `${rem} more queued…` : '', false);
+    } catch (err) {
+        removeMessage(statusMsgId);
+        track.status = 'error';
+        track.errorMsg = err.message;
+        addMessage('system', `<span class="text-red-400">✗ Request failed: ${escHtml(err.message)}</span>`);
+        renderFiles();
+        setStatus('', false);
+        toast(`Failed: ${track.file.name}`, 'error');
+    }
+}
 
-        function toast(msg, kind = 'info') {
-            const el = document.createElement('div');
-            const cls = {
-                info:    'bg-pl-surf border-pl-edge text-pl-text',
-                success: 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400',
-                error:   'bg-red-500/10 border-red-500/30 text-red-400',
-            }[kind] || 'bg-pl-surf border-pl-edge text-pl-text';
-            el.className = `toast ${cls} border px-4 py-2.5 rounded-lg text-sm font-label shadow-lg`;
-            el.textContent = msg;
-            $('#toasts').appendChild(el);
-            setTimeout(() => { el.style.transition = 'opacity 0.2s'; el.style.opacity = '0'; setTimeout(() => el.remove(), 220); }, 2800);
-        }
+// ============================================================
+// Status chip
+// ============================================================
+function setStatus(text, loading) {
+    const chip = $('#statusChip');
+    if (!text) { chip.innerHTML = ''; return; }
+    chip.innerHTML = loading
+        ? `<span class="inline-flex items-center gap-1.5 text-pl-sky"><span class="inline-block w-2.5 h-2.5 border-2 border-pl-edge border-t-pl-sky rounded-full spinner"></span>${escHtml(text)}</span>`
+        : `<span class="text-emerald-400">${escHtml(text)}</span>`;
+}
 
-        function setStatus(text, kind = 'info') {
-            const bar = $('#statusBar');
-            bar.innerHTML = '';
-            if (!text) return;
-            const cls = { info: 'text-pl-muted', loading: 'text-pl-text', success: 'text-emerald-400', error: 'text-red-400' }[kind] || 'text-pl-muted';
-            bar.className = `shrink-0 px-5 py-2 border-b border-pl-edge/60 font-body text-sm min-h-[38px] flex items-center gap-2 ${cls}`;
-            if (kind === 'loading') {
-                const sp = document.createElement('span');
-                sp.className = 'inline-block w-3.5 h-3.5 border-2 border-pl-edge border-t-pl-sky rounded-full spinner shrink-0';
-                bar.appendChild(sp);
-            }
-            const s = document.createElement('span');
-            s.textContent = text;
-            bar.appendChild(s);
-        }
+// ============================================================
+// Chat messages
+// ============================================================
+function addMessage(type, content, trackId) {
+    const s = session();
+    if (!s) return null;
+    const id = uid();
+    s.messages.push({ id, type, content, trackId });
+    appendMessageToDOM({ id, type, content, trackId });
+    updateEmptyState();
+    return id;
+}
 
-        // ================================================================
-        // Track management
-        // ================================================================
-        function addTrack(file) {
-            const id = uid();
-            const audioUrl = URL.createObjectURL(file);
-            const track = { id, file, audioUrl, status: 'pending', segments: [], text: '', language: null, model: null, durationSec: null, errorMsg: null };
-            state.tracks.push(track);
+function removeMessage(id) {
+    const s = session();
+    if (!s) return;
+    const idx = s.messages.findIndex(m => m.id === id);
+    if (idx >= 0) s.messages.splice(idx, 1);
+    const el = document.querySelector(`[data-msg-id="${id}"]`);
+    if (el) el.remove();
+    updateEmptyState();
+}
 
-            // Resolve duration asynchronously
-            const tmp = new Audio(audioUrl);
-            tmp.addEventListener('loadedmetadata', () => { track.durationSec = tmp.duration; renderSidebar(); }, { once: true });
+function appendMessageToDOM(msg) {
+    const chat = $('#chatMessages');
+    const el = document.createElement('div');
+    el.dataset.msgId = msg.id;
+    el.className = 'msg-in';
 
-            enqueueTranscription(id);
-            renderSidebar();
-            showResultsView();
-            return id;
-        }
-
-        function removeTrack(id) {
-            const idx = state.tracks.findIndex(t => t.id === id);
-            if (idx < 0) return;
-            URL.revokeObjectURL(state.tracks[idx].audioUrl);
-            state.tracks.splice(idx, 1);
-            if (state.activeView === id) state.activeView = 'combined';
-            renderSidebar();
-            renderMainContent();
-            if (state.tracks.length === 0) showEmptyView();
-        }
-
-        // ================================================================
-        // Transcription queue — one at a time
-        // ================================================================
-        function enqueueTranscription(id) {
-            state.queueIds.push(id);
-            processQueue();
-        }
-
-        async function processQueue() {
-            if (state.queueRunning || state.queueIds.length === 0) return;
-            state.queueRunning = true;
-            const id = state.queueIds.shift();
-            await transcribeTrack(id);
-            state.queueRunning = false;
-            processQueue();
-        }
-
-        async function transcribeTrack(id) {
-            const track = state.tracks.find(t => t.id === id);
-            if (!track) return;
-            track.status = 'transcribing';
-            renderSidebar();
-            const modelName = $('#model').value;
-            setStatus(`Transcribing "${track.file.name}" with ${modelName}…`, 'loading');
-
-            const form = new FormData();
-            form.append('audio', track.file);
-            form.append('model', modelName);
-            const lang = $('#language').value.trim();
-            if (lang) form.append('language', lang);
-
-            try {
-                const res = await fetch('/transcribe', { method: 'POST', body: form });
-                const data = await res.json();
-                if (!res.ok || !data.ok) {
-                    track.status = 'error';
-                    track.errorMsg = data.error || res.statusText;
-                    renderSidebar();
-                    setStatus(`Error: ${track.errorMsg}`, 'error');
-                    toast(`Failed: ${track.file.name}`, 'error');
-                    return;
-                }
-                track.status = 'done';
-                track.text = String(data.text || '').trim();
-                track.segments = (data.segments || []).map(s => ({ ...s, text: String(s.text || '').trim() }));
-                track.language = data.language;
-                track.model = data.model;
-                renderSidebar();
-                renderMainContent();
-                const rem = state.queueIds.length;
-                setStatus(rem > 0 ? `Done "${track.file.name}" · ${rem} more queued…` : `All files transcribed.`, rem > 0 ? 'loading' : 'success');
-                toast(`Done: ${track.file.name}`, 'success');
-            } catch (err) {
-                track.status = 'error';
-                track.errorMsg = err.message;
-                renderSidebar();
-                setStatus(`Request failed: ${err.message}`, 'error');
-                toast(`Failed: ${track.file.name}`, 'error');
-            }
-        }
-
-        // ================================================================
-        // View helpers
-        // ================================================================
-        function showEmptyView() {
-            $('#noTracksView').classList.remove('hidden');
-            $('#resultsView').classList.add('hidden');
-        }
-        function showResultsView() {
-            $('#noTracksView').classList.add('hidden');
-            $('#resultsView').classList.remove('hidden');
-        }
-
-        // ================================================================
-        // Sidebar rendering
-        // ================================================================
-        function renderSidebar() {
-            const count = state.tracks.length;
-            $('#trackCountBadge').textContent = `${count} file${count !== 1 ? 's' : ''}`;
-
-            // Combined meta line
-            const done = state.tracks.filter(t => t.status === 'done').length;
-            const busy = state.tracks.filter(t => t.status === 'transcribing').length;
-            const pending = state.tracks.filter(t => t.status === 'pending').length;
-            const parts = [];
-            if (done)    parts.push(`${done} done`);
-            if (busy)    parts.push(`${busy} transcribing`);
-            if (pending) parts.push(`${pending} pending`);
-            $('#combinedMeta').textContent = parts.length ? parts.join(' · ') : 'No audio yet';
-
-            // Empty hint
-            $('#emptyHint').style.display = count === 0 ? '' : 'none';
-
-            // "All files" active state
-            $('#viewAllBtn').classList.toggle('active', state.activeView === 'combined');
-
-            // Track items
-            const container = $('#trackItems');
-            container.innerHTML = '';
-            state.tracks.forEach(track => {
-                const isActive = state.activeView === track.id;
-
-                let dotHtml;
-                if (track.status === 'transcribing') {
-                    dotHtml = `<span class="inline-block w-3 h-3 border-2 border-pl-edge border-t-pl-sky rounded-full spinner shrink-0 mt-0.5"></span>`;
-                } else if (track.status === 'done') {
-                    dotHtml = `<span class="w-2 h-2 rounded-full bg-emerald-400 shrink-0 mt-1"></span>`;
-                } else if (track.status === 'error') {
-                    dotHtml = `<span class="w-2 h-2 rounded-full bg-red-400 shrink-0 mt-1"></span>`;
-                } else {
-                    dotHtml = `<span class="w-2 h-2 rounded-full bg-pl-edge shrink-0 mt-1"></span>`;
-                }
-
-                const statusLabel = { pending: 'Pending', transcribing: 'Transcribing…', done: 'Done', error: 'Error' }[track.status];
-                const statusColor = { pending: 'text-pl-faint', transcribing: 'text-pl-sky', done: 'text-emerald-400', error: 'text-red-400' }[track.status];
-                const meta = [fmtBytes(track.file.size), track.durationSec ? fmtTime(track.durationSec) : null].filter(Boolean).join(' · ');
-
-                const el = document.createElement('div');
-                el.className = `track-item rounded-lg px-3 py-2.5 cursor-pointer${isActive ? ' active' : ''}`;
-                el.dataset.trackId = track.id;
-                el.innerHTML = `
-                    <div class="flex items-start gap-2">
-                        ${dotHtml}
-                        <div class="flex-1 min-w-0">
-                            <div class="font-label text-sm text-pl-text truncate leading-tight">${escHtml(track.file.name)}</div>
-                            <div class="flex items-center justify-between gap-1 mt-0.5">
-                                <span class="font-label text-[11px] text-pl-faint truncate">${meta}</span>
-                                <span class="font-label text-[11px] ${statusColor} shrink-0">${statusLabel}</span>
-                            </div>
-                        </div>
-                        <button class="track-remove text-pl-faint hover:text-red-400 transition-colors shrink-0 opacity-0 ml-0.5 mt-0.5" data-remove="${track.id}" title="Remove">
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="w-3.5 h-3.5 pointer-events-none" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                        </button>
+    if (msg.type === 'system') {
+        el.innerHTML = `<div class="flex justify-center"><span class="font-label text-xs text-pl-faint px-3 py-1 bg-pl-cont/50 rounded-full border border-pl-edge/50">${msg.content}</span></div>`;
+    } else if (msg.type === 'transcript') {
+        // Card with collapsed/expanded toggle
+        const preview = msg.content.text ? msg.content.text.slice(0, 200) + (msg.content.text.length > 200 ? '…' : '') : '(empty)';
+        const hasMore = msg.content.text && msg.content.text.length > 200;
+        el.innerHTML = `
+            <div class="rounded-xl border border-pl-edge bg-pl-cont overflow-hidden">
+                <div class="flex items-center justify-between gap-3 px-4 py-2.5 border-b border-pl-edge/60">
+                    <div class="flex items-center gap-2 min-w-0">
+                        <span class="w-2 h-2 rounded-full bg-emerald-400 shrink-0"></span>
+                        <span class="font-label font-semibold text-sm text-pl-text truncate">${escHtml(msg.content.filename)}</span>
+                        ${msg.content.language ? `<span class="font-mono text-[10px] text-pl-faint uppercase px-1.5 py-0.5 rounded bg-pl-edge/50">${escHtml(msg.content.language)}</span>` : ''}
                     </div>
-                `;
-                el.addEventListener('mouseenter', () => el.querySelector('.track-remove').style.opacity = '1');
-                el.addEventListener('mouseleave', () => el.querySelector('.track-remove').style.opacity = '0');
-                container.appendChild(el);
+                    <span class="font-label text-xs text-pl-muted shrink-0">${msg.content.wordCount} words</span>
+                </div>
+                <div class="px-4 py-3">
+                    <div class="msg-preview font-body text-[14px] leading-6 text-pl-text">${escHtml(preview)}</div>
+                    ${hasMore ? `<div class="msg-full hidden font-body text-[14px] leading-6 text-pl-text whitespace-pre-wrap">${escHtml(msg.content.text)}</div>` : ''}
+                    ${hasMore ? `<button class="expand-btn font-label text-xs text-pl-sky hover:text-pl-sky-light mt-2 transition-colors">Show more</button>` : ''}
+                </div>
+            </div>`;
+        // Toggle expand
+        const btn = el.querySelector('.expand-btn');
+        if (btn) {
+            btn.addEventListener('click', () => {
+                const full = el.querySelector('.msg-full'), prev = el.querySelector('.msg-preview');
+                const expanded = !full.classList.contains('hidden');
+                full.classList.toggle('hidden', expanded);
+                prev.classList.toggle('hidden', !expanded);
+                btn.textContent = expanded ? 'Show more' : 'Show less';
             });
         }
+    } else if (msg.type === 'user') {
+        el.innerHTML = `<div class="flex justify-end"><div class="max-w-[80%] rounded-2xl rounded-tr-sm bg-pl-sky/15 border border-pl-sky/20 px-4 py-2.5 font-body text-[14px] text-pl-text leading-6">${escHtml(msg.content)}</div></div>`;
+    }
 
-        // ================================================================
-        // Main content rendering
-        // ================================================================
-        function renderMainContent() {
-            if (state.tracks.length === 0) { showEmptyView(); return; }
-            showResultsView();
+    chat.appendChild(el);
+    chat.scrollTop = chat.scrollHeight;
+}
 
-            let displayText = '', segs = [];
+function addTranscriptCard(track) {
+    const wordCount = track.text.trim().split(/\s+/).filter(Boolean).length;
+    addMessage('transcript', { filename: track.file.name, text: track.text, language: track.language, wordCount }, track.id);
+}
 
-            if (state.activeView === 'combined') {
-                const doneTracks = state.tracks.filter(t => t.status === 'done');
-                if (doneTracks.length > 0) {
-                    segs = doneTracks.flatMap(t => t.segments);
-                    displayText = doneTracks.length > 1
-                        ? doneTracks.map(t => t.text).join('\n\n— — —\n\n')
-                        : doneTracks[0].text;
-                }
-                // Audio player hidden in combined view
-                $('#audioSection').classList.add('hidden');
-                $('#audio').src = '';
-                // Segment hint
-                $('#segmentHint').innerHTML = `<span id="segmentCount">${segs.length}</span> segments`;
-            } else {
-                const track = state.tracks.find(t => t.id === state.activeView);
-                if (track && track.status === 'done') {
-                    segs = track.segments;
-                    displayText = track.text;
-                    // Show audio player
-                    $('#audio').src = track.audioUrl;
-                    $('#audioSection').classList.remove('hidden');
-                } else {
-                    $('#audioSection').classList.add('hidden');
-                    $('#audio').src = '';
-                }
-                $('#segmentHint').innerHTML = `<span id="segmentCount">${segs.length}</span> segments · click a timestamp to seek`;
-            }
+function renderChat() {
+    const chat = $('#chatMessages');
+    chat.innerHTML = '';
+    const s = session();
+    if (s) s.messages.forEach(m => appendMessageToDOM(m));
+    updateEmptyState();
+}
 
-            state.currentSegments = segs;
-            $('#transcriptEditor').textContent = displayText;
-            updateStats();
-            renderSegmentsList();
-            updateResultMeta();
-        }
+function updateEmptyState() {
+    const s = session();
+    const hasMessages = s && s.messages.length > 0;
+    $('#chatEmptyState').style.display = hasMessages ? 'none' : '';
+}
 
-        function updateResultMeta() {
-            const parts = [];
-            if (state.activeView === 'combined') {
-                const done = state.tracks.filter(t => t.status === 'done');
-                if (done.length) parts.push(`${done.length} file${done.length > 1 ? 's' : ''} combined`);
-            } else {
-                const t = state.tracks.find(tr => tr.id === state.activeView);
-                if (t) {
-                    if (t.language) parts.push(`lang: ${t.language}`);
-                    if (t.model) parts.push(`model: ${t.model}`);
-                }
-            }
-            $('#resultMeta').textContent = parts.join(' · ');
-        }
+// ============================================================
+// Sessions sidebar
+// ============================================================
+function renderSessions() {
+    const list = $('#sessionList');
+    list.innerHTML = '';
+    state.sessions.forEach(s => {
+        const el = document.createElement('div');
+        el.className = `session-item rounded-lg px-2.5 py-1.5 cursor-pointer flex items-center gap-2 ${s.id === state.activeSessionId ? 'active' : ''}`;
+        el.innerHTML = `
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-3 h-3 text-pl-muted shrink-0" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            <span class="font-label text-xs text-pl-text truncate flex-1">${escHtml(s.name)}</span>
+            <span class="font-label text-[10px] text-pl-faint shrink-0">${s.tracks.length}</span>`;
+        el.addEventListener('click', () => switchSession(s.id));
+        list.appendChild(el);
+    });
+}
 
-        function updateStats() {
-            const text = $('#transcriptEditor').textContent || '';
-            const words = text.trim().split(/\s+/).filter(Boolean).length;
-            $('#transcriptStats').textContent = text.trim()
-                ? `${words.toLocaleString()} words · ${text.length.toLocaleString()} chars`
-                : '';
-        }
+// ============================================================
+// Files list
+// ============================================================
+function renderFiles() {
+    const s = session();
+    const list = $('#fileList');
+    list.innerHTML = '';
+    const tracks = s ? s.tracks : [];
+    $('#fileEmptyHint').style.display = tracks.length ? 'none' : '';
 
-        // ================================================================
-        // Segments list
-        // ================================================================
-        function renderSegmentsList() {
-            const list = $('#segmentsList');
-            list.innerHTML = '';
-            const segs = state.currentSegments;
-            const sc = document.getElementById('segmentCount');
-            if (sc) sc.textContent = segs.length;
+    tracks.forEach(track => {
+        const statusDot = {
+            pending:      '<span class="w-1.5 h-1.5 rounded-full bg-pl-edge shrink-0 mt-0.5"></span>',
+            transcribing: '<span class="inline-block w-3 h-3 border-2 border-pl-edge border-t-pl-sky rounded-full spinner shrink-0"></span>',
+            done:         '<span class="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0 mt-0.5"></span>',
+            error:        '<span class="w-1.5 h-1.5 rounded-full bg-red-400 shrink-0 mt-0.5"></span>',
+        }[track.status];
+        const meta = [fmtBytes(track.file.size), track.durationSec ? fmtTime(track.durationSec) : null].filter(Boolean).join(' · ');
 
-            segs.forEach((seg, idx) => {
-                const row = document.createElement('div');
-                row.className = 'seg-row group flex items-start gap-3 rounded-lg border border-pl-edge px-3 py-2.5';
-                row.dataset.idx = idx;
+        const el = document.createElement('div');
+        el.className = 'file-item group rounded-lg px-2 py-1.5 flex items-start gap-2';
+        el.innerHTML = `
+            ${statusDot}
+            <div class="flex-1 min-w-0">
+                <div class="font-label text-xs text-pl-text truncate leading-tight">${escHtml(track.file.name)}</div>
+                <div class="font-label text-[10px] text-pl-faint">${meta}</div>
+            </div>
+            <button data-remove="${track.id}" class="text-pl-faint hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all shrink-0 mt-0.5" title="Remove">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="w-3 h-3 pointer-events-none" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>`;
+        list.appendChild(el);
+    });
 
-                const timeBtn = document.createElement('button');
-                timeBtn.className = 'seg-time shrink-0 font-mono text-xs text-pl-muted hover:text-pl-sky transition-colors mt-1 tabular-nums';
-                timeBtn.textContent = fmtTime(seg.start);
-                timeBtn.title = `Seek to ${fmtTime(seg.start)}`;
-                timeBtn.addEventListener('click', () => {
-                    if (state.activeView === 'combined') return;
-                    const audio = $('#audio');
-                    if (!audio.src) return;
-                    audio.currentTime = seg.start;
-                    audio.play();
-                });
+    list.addEventListener('click', e => {
+        const btn = e.target.closest('[data-remove]');
+        if (btn) removeTrack(btn.dataset.remove);
+    });
+}
 
-                const textEl = document.createElement('div');
-                textEl.className = 'flex-1 text-[14.5px] leading-6 text-pl-text outline-none rounded px-1 -mx-1 hover:bg-white/[0.02] focus:bg-white/[0.03] font-body';
-                textEl.contentEditable = 'true';
-                textEl.spellcheck = true;
-                textEl.textContent = seg.text;
-                textEl.addEventListener('input', () => {
-                    state.currentSegments[idx].text = textEl.textContent.trim();
-                    if (state.activeView !== 'combined') {
-                        const track = state.tracks.find(t => t.id === state.activeView);
-                        if (track && track.segments[idx]) {
-                            track.segments[idx].text = textEl.textContent.trim();
-                            track.text = track.segments.map(s => s.text).join(' ').trim();
-                            $('#transcriptEditor').textContent = track.text;
-                            updateStats();
-                        }
-                    }
-                });
-
-                const dur = (seg.end - seg.start) || 0;
-                const meta = document.createElement('div');
-                meta.className = 'shrink-0 font-mono text-[10px] text-pl-faint mt-1.5 tabular-nums opacity-0 group-hover:opacity-100 transition-opacity';
-                meta.textContent = `${dur.toFixed(1)}s`;
-
-                row.appendChild(timeBtn);
-                row.appendChild(textEl);
-                row.appendChild(meta);
-                list.appendChild(row);
-            });
-        }
-
-        // Audio timeupdate → highlight active segment
-        $('#audio').addEventListener('timeupdate', () => {
-            const t = $('#audio').currentTime;
-            let found = -1;
-            for (let i = 0; i < state.currentSegments.length; i++) {
-                const s = state.currentSegments[i];
-                if (t >= s.start && t < s.end) { found = i; break; }
-            }
-            if (found === state.activeSegmentIdx) return;
-            state.activeSegmentIdx = found;
-            $$('#segmentsList .seg-row').forEach(row => row.classList.toggle('seg-active', Number(row.dataset.idx) === found));
-            if (!$('#tab-segments').classList.contains('hidden') && found >= 0) {
-                const active = $(`#segmentsList .seg-row[data-idx="${found}"]`);
-                if (active) {
-                    const lr = $('#segmentsList').getBoundingClientRect();
-                    const ar = active.getBoundingClientRect();
-                    if (ar.top < lr.top || ar.bottom > lr.bottom) active.scrollIntoView({ block: 'center', behavior: 'smooth' });
-                }
-            }
-        });
-
-        // ================================================================
-        // Sidebar events
-        // ================================================================
-        $('#viewAllBtn').addEventListener('click', () => {
-            state.activeView = 'combined';
-            renderSidebar();
-            renderMainContent();
-        });
-
-        $('#trackItems').addEventListener('click', e => {
-            const removeBtn = e.target.closest('[data-remove]');
-            if (removeBtn) { removeTrack(removeBtn.dataset.remove); return; }
-            const item = e.target.closest('.track-item');
-            if (item?.dataset.trackId) {
-                state.activeView = item.dataset.trackId;
-                renderSidebar();
-                renderMainContent();
-            }
-        });
-
-        // ================================================================
-        // File input
-        // ================================================================
-        $('#addAudioBtn').addEventListener('click', () => $('#audioFile').click());
-        $('#audioFile').addEventListener('change', () => {
-            Array.from($('#audioFile').files).forEach(addTrack);
-            $('#audioFile').value = '';
-        });
-
-        // ================================================================
-        // Drop zone (empty state + anywhere on page)
-        // ================================================================
-        const uploadZone = $('#uploadZone');
-        uploadZone.addEventListener('click', () => $('#audioFile').click());
-
-        const AUDIO_EXT = /\.(m4a|wav|mp3|mp4|webm|ogg|flac)$/i;
-        function isAudioFile(f) { return f.type.startsWith('audio/') || f.type.startsWith('video/') || AUDIO_EXT.test(f.name); }
-
-        document.addEventListener('dragover', e => {
-            e.preventDefault();
-            if (!$('#noTracksView').classList.contains('hidden')) uploadZone.classList.add('dz-active');
-        });
-        document.addEventListener('dragleave', e => {
-            if (!e.relatedTarget) uploadZone.classList.remove('dz-active');
-        });
-        document.addEventListener('drop', e => {
-            e.preventDefault();
-            uploadZone.classList.remove('dz-active');
-            const files = Array.from(e.dataTransfer.files).filter(isAudioFile);
-            if (files.length) files.forEach(addTrack);
-        });
-
-        // ================================================================
-        // Tabs
-        // ================================================================
-        $$('.tab').forEach(tab => {
-            tab.addEventListener('click', () => {
-                $$('.tab').forEach(t => t.classList.remove('active'));
-                $$('.tab-panel').forEach(p => p.classList.add('hidden'));
-                tab.classList.add('active');
-                $(`#tab-${tab.dataset.tab}`).classList.remove('hidden');
-            });
-        });
-
-        // Transcript editor input
-        $('#transcriptEditor').addEventListener('input', () => {
-            updateStats();
-            if (state.activeView !== 'combined') {
-                const track = state.tracks.find(t => t.id === state.activeView);
-                if (track) track.text = $('#transcriptEditor').textContent || '';
-            }
-        });
-
-        // ================================================================
-        // Copy / download
-        // ================================================================
-        $$('.copy-btn').forEach(btn => btn.addEventListener('click', async () => {
-            const kind = btn.dataset.copy;
-            let text = '';
-            if (kind === 'transcript') text = $('#transcriptEditor').textContent || '';
-            else if (kind === 'segments-timestamps')
-                text = state.currentSegments.map(s => `[${fmtTime(s.start)} → ${fmtTime(s.end)}] ${s.text}`).join('\n');
-            if (!text.trim()) { toast('Nothing to copy yet', 'info'); return; }
-            try { await navigator.clipboard.writeText(text); toast('Copied to clipboard', 'success'); }
-            catch { toast('Copy failed', 'error'); }
+// ============================================================
+// Studio (right panel)
+// ============================================================
+function getOutputContent(type) {
+    const s = session();
+    if (!s) return null;
+    const done = s.tracks.filter(t => t.status === 'done');
+    if (!done.length) return null;
+    if (type === 'transcript') {
+        return done.length > 1 ? done.map(t => `[${t.file.name}]\n${t.text}`).join('\n\n— — —\n\n') : done[0].text;
+    }
+    if (type === 'segments') {
+        return done.map(t =>
+            `[${t.file.name}]\n` + t.segments.map(sg => `[${fmtTime(sg.start)} → ${fmtTime(sg.end)}]  ${sg.text}`).join('\n')
+        ).join('\n\n');
+    }
+    if (type === 'srt') {
+        let idx = 1;
+        const parts = [];
+        done.forEach(t => t.segments.forEach(sg => {
+            parts.push(`${idx++}\n${fmtSrtTime(sg.start)} --> ${fmtSrtTime(sg.end)}\n${sg.text}`);
         }));
+        return parts.join('\n\n');
+    }
+    return null; // cleaned / minutes / summary — AI, coming soon
+}
 
-        $$('[data-download]').forEach(btn => btn.addEventListener('click', () => {
-            const kind = btn.dataset.download;
-            const baseName = state.activeView === 'combined'
-                ? 'session-transcript'
-                : (state.tracks.find(t => t.id === state.activeView)?.file.name || 'transcript').replace(/\.[^.]+$/, '');
-            if (kind === 'txt') {
-                const text = $('#transcriptEditor').textContent || '';
-                if (!text.trim()) { toast('Nothing to download yet', 'info'); return; }
-                dl(`${baseName}.txt`, text, 'text/plain');
-            } else if (kind === 'srt') {
-                if (!state.currentSegments.length) { toast('Nothing to download yet', 'info'); return; }
-                const srt = state.currentSegments.map((s, i) => `${i+1}\n${fmtSrtTime(s.start)} --> ${fmtSrtTime(s.end)}\n${s.text}\n`).join('\n');
-                dl(`${baseName}.srt`, srt, 'application/x-subrip');
-            }
-        }));
+function renderStudio() {
+    const type = state.activeOutput;
+    const content = getOutputContent(type);
+    const isAiType = ['cleaned','minutes','summary'].includes(type);
 
-        function dl(name, content, mime) {
-            const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(new Blob([content], { type: mime })), download: name });
-            a.click();
-            URL.revokeObjectURL(a.href);
-        }
+    $('#studioEmpty').classList.toggle('hidden', !!(content || isAiType));
+    $('#studioContent').classList.toggle('hidden', !content || isAiType);
+    $('#studioPlaceholder').classList.toggle('hidden', !isAiType);
 
-        // Init
-        renderSidebar();
-        updateStats();
-    </script>
+    if (content && !isAiType) {
+        $('#studioContent').textContent = content;
+        const words = content.trim().split(/\s+/).filter(Boolean).length;
+        $('#studioWordCount').textContent = `${words.toLocaleString()} words`;
+    } else {
+        $('#studioWordCount').textContent = '';
+    }
+}
+
+// Output card clicks
+$$('[data-out]').forEach(btn => {
+    if (btn.disabled) return;
+    btn.addEventListener('click', () => {
+        state.activeOutput = btn.dataset.out;
+        $$('[data-out]').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        renderStudio();
+    });
+});
+
+$('#studioCopyBtn').addEventListener('click', async () => {
+    const content = getOutputContent(state.activeOutput);
+    if (!content) { toast('Nothing to copy yet', 'info'); return; }
+    try { await navigator.clipboard.writeText(content); toast('Copied', 'success'); }
+    catch { toast('Copy failed', 'error'); }
+});
+
+$('#studioDownloadBtn').addEventListener('click', () => {
+    const content = getOutputContent(state.activeOutput);
+    if (!content) { toast('Nothing to download yet', 'info'); return; }
+    const s = session();
+    const base = (s ? s.name : 'session').replace(/[^a-z0-9_-]/gi, '-').toLowerCase();
+    const exts = { transcript: 'txt', segments: 'txt', srt: 'srt' };
+    const mime = state.activeOutput === 'srt' ? 'application/x-subrip' : 'text/plain';
+    dl(`${base}-${state.activeOutput}.${exts[state.activeOutput] || 'txt'}`, content, mime);
+});
+
+// ============================================================
+// File input & drag-drop
+// ============================================================
+$('#addSourcesBtn').addEventListener('click', () => $('#audioFile').click());
+$('#audioFile').addEventListener('change', () => {
+    Array.from($('#audioFile').files).forEach(addTrack);
+    $('#audioFile').value = '';
+});
+
+const AUDIO_EXT = /\.(m4a|wav|mp3|mp4|webm|ogg|flac)$/i;
+function isAudioFile(f) { return f.type.startsWith('audio/') || f.type.startsWith('video/') || AUDIO_EXT.test(f.name); }
+
+const centerMain = $('main');
+document.addEventListener('dragover', e => { e.preventDefault(); centerMain.classList.add('dz-over'); });
+document.addEventListener('dragleave', e => { if (!e.relatedTarget) centerMain.classList.remove('dz-over'); });
+document.addEventListener('drop', e => {
+    e.preventDefault();
+    centerMain.classList.remove('dz-over');
+    const files = Array.from(e.dataTransfer.files).filter(isAudioFile);
+    if (files.length) files.forEach(addTrack);
+});
+
+// ============================================================
+// Chat input
+// ============================================================
+function sendUserMessage() {
+    const input = $('#chatInput');
+    const text = input.value.trim();
+    if (!text) return;
+    input.value = '';
+    addMessage('user', text);
+    // Future: send to AI. For now acknowledge
+    setTimeout(() => {
+        addMessage('system', '<span class="text-pl-sky/70">AI assistant is coming in the next version · transcript is ready to view in Studio →</span>');
+    }, 400);
+}
+
+$('#chatSendBtn').addEventListener('click', sendUserMessage);
+$('#chatInput').addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendUserMessage(); } });
+
+// ============================================================
+// Session title edits saved back to state
+// ============================================================
+$('#sessionTitle').addEventListener('blur', () => {
+    const s = session();
+    if (s) { s.name = $('#sessionTitle').textContent.trim() || 'Untitled session'; renderSessions(); }
+});
+$('#sessionTitle').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); $('#sessionTitle').blur(); } });
+
+// ============================================================
+// New session button
+// ============================================================
+$('#newSessionBtn').addEventListener('click', () => {
+    createSession('Untitled session');
+});
+
+// ============================================================
+// Bootstrap
+// ============================================================
+createSession('Untitled session');
+</script>
 </body>
 </html>
