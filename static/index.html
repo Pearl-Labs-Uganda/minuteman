@@ -1,0 +1,669 @@
+<!doctype html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Minuteman — Transcribe meetings, locally</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                        mono: ['"JetBrains Mono"', 'ui-monospace', 'monospace'],
+                    },
+                    colors: {
+                        ink: {
+                            950: '#0a0c10',
+                            900: '#0f1218',
+                            850: '#141822',
+                            800: '#1a1f2b',
+                            700: '#252b3a',
+                            600: '#363d4f',
+                            500: '#525a72',
+                            400: '#7e8499',
+                            300: '#a6acc1',
+                            200: '#cdd2e2',
+                            100: '#e8ebf4',
+                        },
+                        brand: {
+                            DEFAULT: '#6b8aff',
+                            50:  '#eef2ff',
+                            100: '#e0e7ff',
+                            300: '#9eb3ff',
+                            400: '#7e9bff',
+                            500: '#6b8aff',
+                            600: '#5474f0',
+                            700: '#3f5dd6',
+                        },
+                    },
+                    boxShadow: {
+                        glow: '0 0 0 1px rgba(107,138,255,0.4), 0 8px 32px -8px rgba(107,138,255,0.3)',
+                    },
+                },
+            },
+        };
+    </script>
+    <style>
+        html, body { background: #0a0c10; }
+        body { font-family: 'Inter', system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+
+        /* Custom scrollbar */
+        ::-webkit-scrollbar { width: 10px; height: 10px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #252b3a; border-radius: 8px; border: 2px solid #0a0c10; }
+        ::-webkit-scrollbar-thumb:hover { background: #363d4f; }
+
+        /* Spinner */
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .spinner { animation: spin 0.7s linear infinite; }
+
+        /* Toast slide-in */
+        @keyframes slidein { from { transform: translateY(-12px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        .toast { animation: slidein 0.2s ease-out; }
+
+        /* Editable contenteditable styling */
+        [contenteditable="true"]:focus { outline: none; }
+        [contenteditable="true"] { caret-color: #6b8aff; }
+
+        /* Pulse for the upload zone */
+        @keyframes pulse-border {
+            0%, 100% { border-color: rgba(107,138,255,0.4); }
+            50% { border-color: rgba(107,138,255,0.9); }
+        }
+        .pulse-border { animation: pulse-border 1.5s ease-in-out infinite; }
+
+        /* Audio element dark theme */
+        audio { color-scheme: dark; }
+        audio::-webkit-media-controls-panel { background-color: #141822; }
+
+        /* Hide scrollbar on tabs row */
+        .scrollbar-none::-webkit-scrollbar { display: none; }
+        .scrollbar-none { scrollbar-width: none; }
+    </style>
+</head>
+<body class="bg-ink-950 text-ink-100 min-h-screen">
+
+    <!-- Top nav -->
+    <nav class="border-b border-ink-800/70 bg-ink-950/80 backdrop-blur sticky top-0 z-30">
+        <div class="max-w-6xl mx-auto px-5 py-3 flex items-center justify-between">
+            <div class="flex items-center gap-2.5">
+                <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-brand-400 to-brand-700 flex items-center justify-center shadow-glow">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" class="w-4 h-4 text-white" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+                </div>
+                <div>
+                    <div class="font-semibold text-[15px] leading-none">Minuteman</div>
+                    <div class="text-[11px] text-ink-400 leading-none mt-1">Local speech-to-text for meetings</div>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-2">
+                <span class="hidden sm:inline-flex items-center gap-1.5 text-xs text-ink-400 px-2.5 py-1 rounded-md border border-ink-800 bg-ink-900/60">
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                    Session storage only
+                </span>
+                <button class="text-xs px-3 py-1.5 rounded-md border border-ink-700 hover:border-brand-500 hover:text-white text-ink-300 transition-colors" disabled title="Coming soon">
+                    Sign in
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <main class="max-w-6xl mx-auto px-5 py-8">
+
+        <!-- Upload card -->
+        <section class="rounded-2xl border border-ink-800 bg-ink-900/60 p-5 sm:p-6">
+            <div id="uploadZone"
+                 class="rounded-xl border-2 border-dashed border-ink-700 hover:border-brand-500/60 transition-colors p-7 sm:p-10 text-center cursor-pointer">
+                <input id="audioFile" type="file" class="hidden"
+                       accept="audio/*,video/*,.m4a,.wav,.mp3,.mp4,.webm,.ogg,.flac" />
+                <div id="uploadEmpty">
+                    <div class="w-12 h-12 rounded-full bg-ink-800 border border-ink-700 mx-auto flex items-center justify-center mb-3">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-5 h-5 text-brand-400" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                    </div>
+                    <div class="font-medium text-ink-100">Drop an audio file, or <span class="text-brand-400">browse</span></div>
+                    <div class="text-sm text-ink-400 mt-1">.wav, .mp3, .m4a, .mp4, .webm, .ogg, .flac</div>
+                </div>
+                <div id="uploadFilled" class="hidden">
+                    <div class="flex items-center justify-center gap-3">
+                        <div class="w-10 h-10 rounded-lg bg-brand-500/10 border border-brand-500/30 flex items-center justify-center shrink-0">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-5 h-5 text-brand-400" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+                        </div>
+                        <div class="text-left min-w-0">
+                            <div id="fileName" class="font-medium text-ink-100 truncate max-w-[60vw] sm:max-w-md"></div>
+                            <div id="fileMeta" class="text-xs text-ink-400 mt-0.5"></div>
+                        </div>
+                        <button id="clearFile" class="ml-2 text-xs text-ink-400 hover:text-white px-2 py-1 rounded-md border border-ink-700 hover:border-ink-500 transition-colors">
+                            Change
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Controls row -->
+            <div class="mt-5 flex flex-col sm:flex-row gap-3 sm:items-end justify-between">
+                <div class="flex flex-wrap gap-3">
+                    <div>
+                        <label for="model" class="block text-[11px] uppercase tracking-wide text-ink-400 mb-1">Model</label>
+                        <select id="model" class="bg-ink-850 border border-ink-700 text-ink-100 rounded-md px-3 py-2 text-sm focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500">
+                            <option value="tiny">tiny — fastest</option>
+                            <option value="base" selected>base — balanced</option>
+                            <option value="small">small</option>
+                            <option value="medium">medium</option>
+                            <option value="large">large — best</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="language" class="block text-[11px] uppercase tracking-wide text-ink-400 mb-1">Language</label>
+                        <input id="language" type="text" placeholder="auto" maxlength="5"
+                               class="bg-ink-850 border border-ink-700 text-ink-100 rounded-md px-3 py-2 text-sm w-28 focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500" />
+                    </div>
+                </div>
+
+                <button id="transcribeBtn" disabled
+                        class="inline-flex items-center justify-center gap-2 bg-brand-500 hover:bg-brand-600 disabled:bg-ink-700 disabled:text-ink-400 disabled:cursor-not-allowed text-white font-medium text-sm px-5 py-2.5 rounded-md transition-colors shadow-glow disabled:shadow-none">
+                    <svg id="transcribeIcon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-4 h-4" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                    <svg id="transcribeSpinner" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-4 h-4 spinner hidden" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+                    <span id="transcribeLabel">Transcribe</span>
+                </button>
+            </div>
+
+            <!-- Status / progress -->
+            <div id="statusBar" class="mt-3 text-sm text-ink-400 min-h-[20px]"></div>
+        </section>
+
+        <!-- Audio player (shown after file selected) -->
+        <section id="audioSection" class="mt-5 rounded-2xl border border-ink-800 bg-ink-900/60 p-4 hidden">
+            <audio id="audio" controls class="w-full"></audio>
+        </section>
+
+        <!-- Results -->
+        <section id="resultsSection" class="mt-5 rounded-2xl border border-ink-800 bg-ink-900/60 hidden">
+            <!-- Tabs -->
+            <div class="flex items-center justify-between border-b border-ink-800 px-3 sm:px-5">
+                <div class="flex gap-1 overflow-x-auto scrollbar-none">
+                    <button data-tab="transcript" class="tab active px-3 sm:px-4 py-3.5 text-sm font-medium whitespace-nowrap">Transcript</button>
+                    <button data-tab="segments"   class="tab px-3 sm:px-4 py-3.5 text-sm font-medium whitespace-nowrap">Segments</button>
+                    <button data-tab="cleaned"    class="tab px-3 sm:px-4 py-3.5 text-sm font-medium whitespace-nowrap">Cleaned-up</button>
+                    <button data-tab="minutes"    class="tab px-3 sm:px-4 py-3.5 text-sm font-medium whitespace-nowrap">Minutes</button>
+                    <button data-tab="summary"    class="tab px-3 sm:px-4 py-3.5 text-sm font-medium whitespace-nowrap">Summary</button>
+                </div>
+
+                <div id="resultMeta" class="hidden sm:block text-xs text-ink-400 pl-4 pr-1 whitespace-nowrap"></div>
+            </div>
+
+            <!-- Tab: Transcript -->
+            <div id="tab-transcript" class="tab-panel p-5">
+                <div class="rounded-lg border border-ink-800 bg-ink-850 focus-within:border-brand-500 transition-colors">
+                    <div id="transcriptEditor" contenteditable="true"
+                         class="p-4 sm:p-5 min-h-[280px] text-[15px] leading-7 text-ink-100 whitespace-pre-wrap font-sans"
+                         data-placeholder="Your transcript will appear here. Click to edit any text that doesn't look right."></div>
+                </div>
+                <div class="mt-3 flex flex-wrap items-center justify-between gap-3">
+                    <div id="transcriptStats" class="text-xs text-ink-400"></div>
+                    <div class="flex gap-2">
+                        <button data-copy="transcript" class="copy-btn inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md border border-ink-700 hover:border-brand-500 hover:text-white text-ink-300 transition-colors">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-3.5 h-3.5" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                            Copy
+                        </button>
+                        <button data-download="txt" class="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md border border-ink-700 hover:border-brand-500 hover:text-white text-ink-300 transition-colors">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-3.5 h-3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                            .txt
+                        </button>
+                        <button data-download="srt" class="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md border border-ink-700 hover:border-brand-500 hover:text-white text-ink-300 transition-colors">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-3.5 h-3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                            .srt
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab: Segments -->
+            <div id="tab-segments" class="tab-panel hidden p-3 sm:p-5">
+                <div class="flex items-center justify-between mb-3 px-2">
+                    <div class="text-xs text-ink-400">
+                        <span id="segmentCount">0</span> segments · Click a timestamp to seek · Click text to edit
+                    </div>
+                    <button data-copy="segments-timestamps" class="copy-btn text-xs text-ink-400 hover:text-white px-2 py-1 rounded-md border border-ink-800 hover:border-brand-500 transition-colors">
+                        Copy with timestamps
+                    </button>
+                </div>
+                <div id="segmentsList" class="space-y-1 max-h-[60vh] overflow-y-auto pr-1"></div>
+            </div>
+
+            <!-- Placeholder tabs -->
+            <div id="tab-cleaned" class="tab-panel hidden p-5">
+                <div class="rounded-lg border border-dashed border-ink-700 p-10 text-center">
+                    <div class="text-ink-300 font-medium">Cleaned-up transcript</div>
+                    <div class="text-sm text-ink-400 mt-1.5">We'll plug this into an LLM (Claude / OpenAI / Ollama) in the next step.</div>
+                </div>
+            </div>
+            <div id="tab-minutes" class="tab-panel hidden p-5">
+                <div class="rounded-lg border border-dashed border-ink-700 p-10 text-center">
+                    <div class="text-ink-300 font-medium">Meeting minutes</div>
+                    <div class="text-sm text-ink-400 mt-1.5">Structured minutes — attendees, decisions, action items. Coming next.</div>
+                </div>
+            </div>
+            <div id="tab-summary" class="tab-panel hidden p-5">
+                <div class="rounded-lg border border-dashed border-ink-700 p-10 text-center">
+                    <div class="text-ink-300 font-medium">Summary report</div>
+                    <div class="text-sm text-ink-400 mt-1.5">Executive summary of the key points. Coming next.</div>
+                </div>
+            </div>
+        </section>
+
+        <footer class="mt-10 text-center text-xs text-ink-500">
+            Running locally · Audio never leaves your machine
+        </footer>
+    </main>
+
+    <!-- Toast container -->
+    <div id="toasts" class="fixed top-4 right-4 z-50 flex flex-col gap-2"></div>
+
+    <!-- Styles for active tab and placeholder -->
+    <style>
+        .tab { color: #7e8499; border-bottom: 2px solid transparent; transition: color 0.15s, border-color 0.15s; }
+        .tab:hover { color: #cdd2e2; }
+        .tab.active { color: #e8ebf4; border-bottom-color: #6b8aff; }
+        [contenteditable][data-placeholder]:empty::before {
+            content: attr(data-placeholder);
+            color: #525a72;
+            pointer-events: none;
+        }
+        /* Segment row hover/active states */
+        .seg-row { transition: background 0.15s, border-color 0.15s; }
+        .seg-row:hover { background: rgba(107,138,255,0.06); }
+        .seg-row.active { background: rgba(107,138,255,0.12); border-color: rgba(107,138,255,0.4) !important; }
+        .seg-row.active .seg-time { color: #9eb3ff; }
+    </style>
+
+    <script>
+        // ====================================================================
+        // State
+        // ====================================================================
+        const state = {
+            file: null,
+            audioUrl: null,
+            segments: [],          // [{start, end, text, edited?}]
+            language: null,
+            model: null,
+            durationSec: null,
+            lastTranscript: null,  // raw response
+            activeSegmentIdx: -1,
+        };
+
+        // ====================================================================
+        // Helpers
+        // ====================================================================
+        const $ = (sel) => document.querySelector(sel);
+        const $$ = (sel) => Array.from(document.querySelectorAll(sel));
+
+        function fmtTime(t) {
+            if (t == null || isNaN(t)) return '--:--';
+            const total = Math.max(0, Math.floor(t));
+            const m = Math.floor(total / 60);
+            const s = total % 60;
+            return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+        }
+        function fmtSrtTime(t) {
+            const ms = Math.max(0, Math.floor((t || 0) * 1000));
+            const h = Math.floor(ms / 3600000);
+            const m = Math.floor((ms % 3600000) / 60000);
+            const s = Math.floor((ms % 60000) / 1000);
+            const milli = ms % 1000;
+            return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')},${String(milli).padStart(3,'0')}`;
+        }
+        function fmtBytes(b) {
+            if (b == null) return '';
+            if (b < 1024) return `${b} B`;
+            if (b < 1024*1024) return `${(b/1024).toFixed(1)} KB`;
+            return `${(b/1024/1024).toFixed(1)} MB`;
+        }
+
+        function toast(msg, kind = 'info') {
+            const wrap = document.createElement('div');
+            const colors = {
+                info:    'bg-ink-800 border-ink-700 text-ink-100',
+                success: 'bg-emerald-500/15 border-emerald-500/40 text-emerald-300',
+                error:   'bg-red-500/15 border-red-500/40 text-red-300',
+            }[kind] || 'bg-ink-800 border-ink-700 text-ink-100';
+            wrap.className = `toast ${colors} border px-4 py-2.5 rounded-lg text-sm shadow-lg`;
+            wrap.textContent = msg;
+            $('#toasts').appendChild(wrap);
+            setTimeout(() => {
+                wrap.style.transition = 'opacity 0.2s';
+                wrap.style.opacity = '0';
+                setTimeout(() => wrap.remove(), 220);
+            }, 2200);
+        }
+
+        function setStatus(text, kind = 'info') {
+            const bar = $('#statusBar');
+            bar.innerHTML = '';
+            if (!text) return;
+            const classes = {
+                info:    'text-ink-400',
+                loading: 'text-ink-200',
+                success: 'text-emerald-400',
+                error:   'text-red-400',
+            }[kind] || 'text-ink-400';
+            bar.className = `mt-3 text-sm min-h-[20px] ${classes} flex items-center gap-2`;
+            if (kind === 'loading') {
+                const sp = document.createElement('span');
+                sp.className = 'inline-block w-3.5 h-3.5 border-2 border-ink-600 border-t-brand-400 rounded-full spinner';
+                bar.appendChild(sp);
+            }
+            const span = document.createElement('span');
+            span.textContent = text;
+            bar.appendChild(span);
+        }
+
+        // ====================================================================
+        // File handling (browse + drag-drop)
+        // ====================================================================
+        const uploadZone = $('#uploadZone');
+        const fileInput = $('#audioFile');
+
+        uploadZone.addEventListener('click', (e) => {
+            if (e.target.closest('#clearFile')) return;
+            fileInput.click();
+        });
+        fileInput.addEventListener('change', () => loadFile(fileInput.files[0]));
+
+        ['dragenter', 'dragover'].forEach((ev) =>
+            uploadZone.addEventListener(ev, (e) => {
+                e.preventDefault();
+                uploadZone.classList.add('pulse-border', 'bg-brand-500/5');
+            })
+        );
+        ['dragleave', 'drop'].forEach((ev) =>
+            uploadZone.addEventListener(ev, (e) => {
+                e.preventDefault();
+                uploadZone.classList.remove('pulse-border', 'bg-brand-500/5');
+            })
+        );
+        uploadZone.addEventListener('drop', (e) => {
+            const f = e.dataTransfer.files[0];
+            if (f) loadFile(f);
+        });
+
+        $('#clearFile').addEventListener('click', (e) => {
+            e.stopPropagation();
+            clearFile();
+        });
+
+        function loadFile(file) {
+            if (!file) return;
+            state.file = file;
+            if (state.audioUrl) URL.revokeObjectURL(state.audioUrl);
+            state.audioUrl = URL.createObjectURL(file);
+
+            $('#fileName').textContent = file.name;
+            $('#fileMeta').textContent = fmtBytes(file.size);
+            $('#uploadEmpty').classList.add('hidden');
+            $('#uploadFilled').classList.remove('hidden');
+            $('#transcribeBtn').disabled = false;
+
+            const audio = $('#audio');
+            audio.src = state.audioUrl;
+            $('#audioSection').classList.remove('hidden');
+
+            audio.addEventListener('loadedmetadata', () => {
+                state.durationSec = audio.duration;
+                $('#fileMeta').textContent = `${fmtBytes(file.size)} · ${fmtTime(audio.duration)}`;
+            }, { once: true });
+
+            setStatus('Ready to transcribe.', 'info');
+        }
+
+        function clearFile() {
+            state.file = null;
+            if (state.audioUrl) {
+                URL.revokeObjectURL(state.audioUrl);
+                state.audioUrl = null;
+            }
+            fileInput.value = '';
+            $('#uploadEmpty').classList.remove('hidden');
+            $('#uploadFilled').classList.add('hidden');
+            $('#transcribeBtn').disabled = true;
+            $('#audioSection').classList.add('hidden');
+            $('#audio').src = '';
+            setStatus('');
+        }
+
+        // ====================================================================
+        // Tabs
+        // ====================================================================
+        $$('.tab').forEach((tab) => {
+            tab.addEventListener('click', () => {
+                $$('.tab').forEach((t) => t.classList.remove('active'));
+                $$('.tab-panel').forEach((p) => p.classList.add('hidden'));
+                tab.classList.add('active');
+                $(`#tab-${tab.dataset.tab}`).classList.remove('hidden');
+            });
+        });
+
+        // ====================================================================
+        // Transcribe
+        // ====================================================================
+        $('#transcribeBtn').addEventListener('click', async () => {
+            if (!state.file) return;
+
+            const form = new FormData();
+            form.append('audio', state.file);
+            form.append('model', $('#model').value);
+            const lang = $('#language').value.trim();
+            if (lang) form.append('language', lang);
+
+            setTranscribing(true);
+            setStatus(`Transcribing with ${$('#model').value} — this can take a while the first time the model downloads...`, 'loading');
+
+            const t0 = performance.now();
+            try {
+                const res = await fetch('/transcribe', { method: 'POST', body: form });
+                const data = await res.json();
+                const seconds = ((performance.now() - t0) / 1000).toFixed(1);
+
+                if (!res.ok || !data.ok) {
+                    setStatus(`Error: ${data.error || res.statusText}`, 'error');
+                    toast('Transcription failed', 'error');
+                    return;
+                }
+
+                state.segments = (data.segments || []).map((s) => ({ ...s, text: (s.text || '').trim() }));
+                state.language = data.language;
+                state.model = data.model;
+                state.lastTranscript = data;
+
+                renderTranscriptFromSegments();
+                renderSegmentsList();
+                updateResultMeta(seconds);
+
+                $('#resultsSection').classList.remove('hidden');
+                setStatus(`Done in ${seconds}s.`, 'success');
+                toast('Transcription complete', 'success');
+            } catch (err) {
+                setStatus(`Request failed: ${err.message}`, 'error');
+                toast('Request failed', 'error');
+            } finally {
+                setTranscribing(false);
+            }
+        });
+
+        function setTranscribing(on) {
+            const btn = $('#transcribeBtn');
+            btn.disabled = on || !state.file;
+            $('#transcribeIcon').classList.toggle('hidden', on);
+            $('#transcribeSpinner').classList.toggle('hidden', !on);
+            $('#transcribeLabel').textContent = on ? 'Transcribing...' : 'Transcribe';
+        }
+
+        function updateResultMeta(seconds) {
+            const parts = [];
+            if (state.language) parts.push(`detected: ${state.language}`);
+            if (state.model) parts.push(`model: ${state.model}`);
+            if (seconds) parts.push(`took ${seconds}s`);
+            $('#resultMeta').textContent = parts.join('  ·  ');
+        }
+
+        // ====================================================================
+        // Transcript view (editable contenteditable)
+        // ====================================================================
+        const editor = $('#transcriptEditor');
+
+        function renderTranscriptFromSegments() {
+            const text = state.segments.map((s) => s.text).join(' ').trim();
+            editor.textContent = text;
+            updateStats();
+        }
+
+        editor.addEventListener('input', updateStats);
+
+        function updateStats() {
+            const text = editor.textContent || '';
+            const words = text.trim().split(/\s+/).filter(Boolean).length;
+            const chars = text.length;
+            $('#transcriptStats').textContent = `${words.toLocaleString()} words · ${chars.toLocaleString()} characters`;
+        }
+
+        // ====================================================================
+        // Segments list (editable + audio sync)
+        // ====================================================================
+        function renderSegmentsList() {
+            const list = $('#segmentsList');
+            list.innerHTML = '';
+            $('#segmentCount').textContent = state.segments.length;
+
+            state.segments.forEach((seg, idx) => {
+                const row = document.createElement('div');
+                row.className = 'seg-row group flex items-start gap-3 rounded-lg border border-ink-800 px-3 py-2.5';
+                row.dataset.idx = idx;
+
+                const timeBtn = document.createElement('button');
+                timeBtn.className = 'seg-time shrink-0 font-mono text-xs text-ink-400 hover:text-brand-400 transition-colors mt-1 tabular-nums';
+                timeBtn.textContent = fmtTime(seg.start);
+                timeBtn.title = `Play from ${fmtTime(seg.start)}`;
+                timeBtn.addEventListener('click', () => {
+                    const audio = $('#audio');
+                    if (!audio.src) return;
+                    audio.currentTime = seg.start;
+                    audio.play();
+                });
+
+                const textEl = document.createElement('div');
+                textEl.className = 'flex-1 text-[14.5px] leading-6 text-ink-100 outline-none rounded px-1 -mx-1 hover:bg-white/[0.02] focus:bg-white/[0.04]';
+                textEl.contentEditable = 'true';
+                textEl.spellcheck = true;
+                textEl.textContent = seg.text;
+                textEl.addEventListener('input', () => {
+                    state.segments[idx].text = textEl.textContent.trim();
+                    state.segments[idx].edited = true;
+                    renderTranscriptFromSegments();
+                });
+
+                const dur = (seg.end - seg.start) || 0;
+                const meta = document.createElement('div');
+                meta.className = 'shrink-0 font-mono text-[10px] text-ink-500 mt-1.5 tabular-nums opacity-0 group-hover:opacity-100 transition-opacity';
+                meta.textContent = `${dur.toFixed(1)}s`;
+
+                row.appendChild(timeBtn);
+                row.appendChild(textEl);
+                row.appendChild(meta);
+                list.appendChild(row);
+            });
+        }
+
+        // Audio timeupdate → highlight active segment
+        const audioEl = $('#audio');
+        audioEl.addEventListener('timeupdate', () => {
+            const t = audioEl.currentTime;
+            let foundIdx = -1;
+            for (let i = 0; i < state.segments.length; i++) {
+                const s = state.segments[i];
+                if (t >= s.start && t < s.end) { foundIdx = i; break; }
+            }
+            if (foundIdx === state.activeSegmentIdx) return;
+            state.activeSegmentIdx = foundIdx;
+            $$('#segmentsList .seg-row').forEach((row) => {
+                const idx = Number(row.dataset.idx);
+                row.classList.toggle('active', idx === foundIdx);
+            });
+            // Scroll active into view (only if Segments tab is visible)
+            if (!$('#tab-segments').classList.contains('hidden') && foundIdx >= 0) {
+                const active = $(`#segmentsList .seg-row[data-idx="${foundIdx}"]`);
+                if (active) {
+                    const list = $('#segmentsList');
+                    const lr = list.getBoundingClientRect();
+                    const ar = active.getBoundingClientRect();
+                    if (ar.top < lr.top || ar.bottom > lr.bottom) {
+                        active.scrollIntoView({ block: 'center', behavior: 'smooth' });
+                    }
+                }
+            }
+        });
+
+        // ====================================================================
+        // Copy / download
+        // ====================================================================
+        $$('.copy-btn').forEach((btn) =>
+            btn.addEventListener('click', async () => {
+                const kind = btn.dataset.copy;
+                let text = '';
+                if (kind === 'transcript') {
+                    text = editor.textContent || '';
+                } else if (kind === 'segments-timestamps') {
+                    text = state.segments
+                        .map((s) => `[${fmtTime(s.start)} → ${fmtTime(s.end)}] ${s.text}`)
+                        .join('\n');
+                }
+                if (!text.trim()) {
+                    toast('Nothing to copy yet', 'info');
+                    return;
+                }
+                try {
+                    await navigator.clipboard.writeText(text);
+                    toast('Copied to clipboard', 'success');
+                } catch {
+                    toast('Copy failed', 'error');
+                }
+            })
+        );
+
+        $$('[data-download]').forEach((btn) =>
+            btn.addEventListener('click', () => {
+                const kind = btn.dataset.download;
+                const baseName = (state.file?.name || 'transcript').replace(/\.[^.]+$/, '');
+                if (kind === 'txt') {
+                    const text = editor.textContent || '';
+                    if (!text.trim()) return toast('Nothing to download yet', 'info');
+                    download(`${baseName}.txt`, text, 'text/plain');
+                } else if (kind === 'srt') {
+                    if (!state.segments.length) return toast('Nothing to download yet', 'info');
+                    const srt = state.segments
+                        .map((s, i) => `${i + 1}\n${fmtSrtTime(s.start)} --> ${fmtSrtTime(s.end)}\n${s.text}\n`)
+                        .join('\n');
+                    download(`${baseName}.srt`, srt, 'application/x-subrip');
+                }
+            })
+        );
+
+        function download(name, content, mime) {
+            const blob = new Blob([content], { type: mime });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = name;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        // Initial focus polish: render empty stats
+        updateStats();
+    </script>
+</body>
+</html>
