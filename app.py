@@ -71,6 +71,31 @@ CORS_ORIGINS: list[str] = [o.strip() for o in _raw_cors.split(",") if o.strip()]
 # `base` is a good default for CPU. Override with the WHISPER_MODEL env var.
 DEFAULT_MODEL_NAME = os.environ.get("WHISPER_MODEL", "base")
 
+# Device selection for Whisper inference.
+#   WHISPER_DEVICE=auto   — use CUDA if available, then MPS, then CPU (default)
+#   WHISPER_DEVICE=cuda   — force NVIDIA GPU
+#   WHISPER_DEVICE=mps    — force Apple Silicon GPU
+#   WHISPER_DEVICE=cpu    — force CPU (disables GPU even if present)
+_DEVICE_ENV = os.environ.get("WHISPER_DEVICE", "auto").lower()
+
+
+def _resolve_device() -> str:
+    """Resolve the compute device to pass to whisper.load_model()."""
+    if _DEVICE_ENV != "auto":
+        return _DEVICE_ENV  # explicit override — trust the operator
+    try:
+        import torch
+        if torch.cuda.is_available():
+            return "cuda"
+        if torch.backends.mps.is_available():
+            return "mps"
+    except Exception:  # torch not importable (shouldn't happen, whisper depends on it)
+        pass
+    return "cpu"
+
+
+COMPUTE_DEVICE: str = _resolve_device()
+
 _model = None
 _model_name_loaded: Optional[str] = None
 
@@ -83,10 +108,11 @@ def get_model(model_name: str | None = None):
 
     name = model_name or DEFAULT_MODEL_NAME
     if _model is None or _model_name_loaded != name:
-        print(f"[minuteman] Loading Whisper model '{name}' (first call may take a while)...")
-        _model = whisper.load_model(name)
+        print(f"[minuteman] Loading Whisper model '{name}' on device '{COMPUTE_DEVICE}' "
+              f"(first call may take a while)...")
+        _model = whisper.load_model(name, device=COMPUTE_DEVICE)
         _model_name_loaded = name
-        print(f"[minuteman] Model '{name}' ready.")
+        print(f"[minuteman] Model '{name}' ready on '{COMPUTE_DEVICE}'.")
     return _model
 
 
@@ -113,7 +139,12 @@ def index():
 
 @app.get("/health")
 def health():
-    return {"ok": True, "model": _model_name_loaded or f"(not loaded; default={DEFAULT_MODEL_NAME})"}
+    return {
+        "ok": True,
+        "model": _model_name_loaded or f"(not loaded; default={DEFAULT_MODEL_NAME})",
+        "device": COMPUTE_DEVICE,
+        "device_config": _DEVICE_ENV,
+    }
 
 
 @app.post("/transcribe")
