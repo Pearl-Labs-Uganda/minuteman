@@ -33,6 +33,16 @@ function escHtml(s) {
     .replace(/"/g, "&quot;");
 }
 
+function updateViewportHeight() {
+  document.documentElement.style.setProperty(
+    "--vh",
+    `${window.innerHeight * 0.01}px`,
+  );
+}
+window.addEventListener("resize", updateViewportHeight);
+window.addEventListener("orientationchange", updateViewportHeight);
+updateViewportHeight();
+
 function toast(msg, kind = "info") {
   const cls =
     {

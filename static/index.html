@@ -67,7 +67,7 @@
     </script>
     <link rel="stylesheet" href="/static/css/app.css" />
   </head>
-  <body class="bg-pl-bg text-pl-text h-screen flex flex-col overflow-hidden">
+  <body class="bg-pl-bg text-pl-text min-h-screen flex flex-col overflow-x-hidden">
     <!-- ── Top nav ──────────────────────────────────────────────────────────── -->
     <nav
       class="shrink-0 h-12 border-b border-pl-edge/70 bg-pl-bg/95 backdrop-blur z-30 flex items-center px-4 gap-3"
@@ -132,13 +132,13 @@
     </nav>
 
     <!-- ── Three-column layout ──────────────────────────────────────────────── -->
-    <div class="flex flex-1 overflow-hidden">
+    <div class="flex flex-1 overflow-hidden min-h-0">
       <!-- ════════════════════════════════════════════════════════════════════
          LEFT — Sources
     ═══════════════════════════════════════════════════════════════════════ -->
       <aside
         id="sourcesPanel"
-        class="w-56 shrink-0 border-r border-pl-edge bg-pl-surf flex flex-col overflow-hidden"
+        class="w-56 shrink-0 min-h-0 border-r border-pl-edge bg-pl-surf flex flex-col overflow-hidden"
       >
         <!-- Icon strip (visible only when src-collapsed) -->
         <div
@@ -326,7 +326,7 @@
          CENTER — Chat
     ═══════════════════════════════════════════════════════════════════════ -->
       <main
-        class="relative flex-1 flex flex-col overflow-hidden border-r border-pl-edge min-w-0"
+        class="relative flex-1 flex flex-col overflow-hidden border-r border-pl-edge min-w-0 min-h-0"
       >
         <!-- Session title + status -->
         <div
@@ -429,7 +429,7 @@
     ═══════════════════════════════════════════════════════════════════════ -->
       <aside
         id="studioPanel"
-        class="w-72 shrink-0 border-l border-pl-edge bg-pl-surf flex flex-col overflow-hidden"
+        class="w-72 shrink-0 min-h-0 border-l border-pl-edge bg-pl-surf flex flex-col overflow-hidden"
       >
         <!-- Studio header with output mode buttons -->
         <div class="shrink-0 px-4 border-b border-pl-edge flex flex-col gap-3">
