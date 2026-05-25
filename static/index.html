@@ -66,52 +66,6 @@
       };
     </script>
     <link rel="stylesheet" href="/static/css/app.css" />
-    } ::-webkit-scrollbar { width: 5px; height: 5px; } ::-webkit-scrollbar-track
-    { background: transparent; } ::-webkit-scrollbar-thumb { background:
-    #1e3254; border-radius: 6px; } ::-webkit-scrollbar-thumb:hover { background:
-    #26406a; } .scrollbar-none::-webkit-scrollbar { display: none; }
-    .scrollbar-none { scrollbar-width: none; } @keyframes spin { to { transform:
-    rotate(360deg); } } .spinner { animation: spin 0.7s linear infinite; }
-    @keyframes fadein { from { opacity: 0; transform: translateY(6px); } to {
-    opacity: 1; transform: translateY(0); } } .msg-in { animation: fadein 0.18s
-    ease-out; } @keyframes toastin { from { transform: translateY(-10px);
-    opacity: 0; } to { transform: translateY(0); opacity: 1; } } .toast-el {
-    animation: toastin 0.18s ease-out; } [contenteditable="true"]:focus {
-    outline: none; } [contenteditable="true"] { caret-color: #6eaadc; }
-    [contenteditable][data-ph]:empty::before { content: attr(data-ph); color:
-    #3a576c; pointer-events: none; } .session-item { transition: background
-    0.1s; border: 1px solid transparent; } .session-item:hover { background:
-    rgba(30, 50, 84, 0.6); } .session-item.active { background: #162844;
-    border-color: rgba(110, 170, 220, 0.25); } .output-card { transition:
-    background 0.1s, border-color 0.1s; } .output-card:hover { background:
-    #162844; } .output-card.active { background: #162844; border-color:
-    rgba(110, 170, 220, 0.5) !important; color: #9dc4e8; } .file-item {
-    transition: background 0.1s; border: 1px solid transparent; }
-    .file-item:hover { background: rgba(30, 50, 84, 0.5); } .dz-over {
-    border-color: rgba(110, 170, 220, 0.6) !important; background: rgba(110,
-    170, 220, 0.03); } audio { color-scheme: dark; } /* Sidebar collapse */
-    aside { transition: width 0.22s cubic-bezier(0.4, 0, 0.2, 1); }
-    aside.collapsed { width: 0 !important; min-width: 0 !important;
-    border-color: transparent !important; } aside.src-collapsed { width: 3rem
-    !important; min-width: 3rem !important; } .src-collapsed .collapse-hide {
-    display: none !important; } .src-collapsed .collapse-show { display: flex
-    !important; } .panel-toggle { transition: color 0.15s, background 0.15s; }
-    .panel-toggle.panel-open { color: #6eaadc; background: rgba(110, 170, 220,
-    0.1); } /* ── Mobile: panel drawers
-    ─────────────────────────────────────────── */ #backdrop { display: none;
-    position: fixed; inset: 0; background: rgba(0, 11, 26, 0.72); z-index: 35; }
-    @media (max-width: 767px) { aside#sourcesPanel, aside#studioPanel {
-    position: fixed !important; top: 3rem; bottom: 0; z-index: 40; width:
-    min(80vw, 18rem) !important; min-width: 0 !important; transition: transform
-    0.24s cubic-bezier(0.4, 0, 0.2, 1) !important; } aside#sourcesPanel { left:
-    0; transform: translateX(0); } aside#studioPanel { right: 0; transform:
-    translateX(0); } aside#sourcesPanel.mob-hidden { transform:
-    translateX(-110%); } aside#studioPanel.mob-hidden { transform:
-    translateX(110%); } /* Always show full panel content inside a mobile drawer
-    */ aside#sourcesPanel .collapse-hide { display: block !important; }
-    aside#sourcesPanel .collapse-show { display: none !important; } /* Keep
-    src-collapsed from shrinking the panel on mobile */
-    aside#sourcesPanel.src-collapsed { width: min(80vw, 18rem) !important;
   </head>
   <body class="bg-pl-bg text-pl-text h-screen flex flex-col overflow-hidden">
     <!-- ── Top nav ──────────────────────────────────────────────────────────── -->
@@ -477,27 +431,126 @@
         id="studioPanel"
         class="w-72 shrink-0 border-l border-pl-edge bg-pl-surf flex flex-col overflow-hidden"
       >
-        <!-- Studio header with format selector -->
-        <div
-          class="shrink-0 h-11 px-4 border-b border-pl-edge flex items-center gap-3"
-        >
-          <span
-            class="font-headline font-semibold text-sm text-pl-text shrink-0"
-            >Studio</span
-          >
-          <select
-            id="outputSelect"
-            class="flex-1 min-w-0 bg-pl-cont border border-pl-edge text-pl-text rounded-lg px-2.5 py-1 text-xs font-label focus:outline-none focus:border-pl-sky/50"
-          >
-            <option value="transcript">Transcript &middot; .txt</option>
-            <option value="segments">Segments &middot; timestamped</option>
-            <option value="srt">Captions &middot; .srt</option>
-            <option value="cleaned" disabled>
-              Cleaned-up &middot; AI soon
-            </option>
-            <option value="minutes" disabled>Minutes &middot; AI soon</option>
-            <option value="summary" disabled>Summary &middot; AI soon</option>
-          </select>
+        <!-- Studio header with output mode buttons -->
+        <div class="shrink-0 px-4 border-b border-pl-edge flex flex-col gap-3">
+          <div class="flex items-center gap-3">
+            <span
+              class="font-headline font-semibold text-sm text-pl-text shrink-0"
+              >Studio</span
+            >
+            <span class="font-label text-[10px] uppercase tracking-widest text-pl-faint"
+              >Output mode</span
+            >
+          </div>
+          <div id="studioOutputButtons" class="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              data-output="transcript"
+              class="studioOutputBtn flex items-start gap-2 rounded-2xl border border-pl-edge bg-pl-cont px-2 py-2 text-left text-xs text-pl-muted transition-colors"
+            >
+              <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-pl-sky/10 text-pl-sky">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-4 h-4" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                  <polyline points="14 2 14 8 20 8"/>
+                  <line x1="16" y1="13" x2="8" y2="13"/>
+                  <line x1="16" y1="17" x2="8" y2="17"/>
+                  <polyline points="10 9 9 9 8 9"/>
+                </svg>
+              </span>
+              <span class="min-w-0">
+                <div class="font-label font-semibold">Transcript</div>
+                <div class="font-label text-[10px] text-pl-faint">.txt · full text</div>
+              </span>
+            </button>
+            <button
+              type="button"
+              data-output="segments"
+              class="studioOutputBtn flex items-start gap-2 rounded-2xl border border-pl-edge bg-pl-cont px-2 py-2 text-left text-xs text-pl-muted transition-colors"
+            >
+              <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-pl-sky/10 text-pl-sky">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-4 h-4" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="8" y1="6" x2="21" y2="6"/>
+                  <line x1="8" y1="12" x2="21" y2="12"/>
+                  <line x1="8" y1="18" x2="21" y2="18"/>
+                  <line x1="3" y1="6" x2="3.01" y2="6"/>
+                  <line x1="3" y1="12" x2="3.01" y2="12"/>
+                  <line x1="3" y1="18" x2="3.01" y2="18"/>
+                </svg>
+              </span>
+              <span class="min-w-0">
+                <div class="font-label font-semibold">Segments</div>
+                <div class="font-label text-[10px] text-pl-faint">timestamped</div>
+              </span>
+            </button>
+            <button
+              type="button"
+              data-output="srt"
+              class="studioOutputBtn flex items-start gap-2 rounded-2xl border border-pl-edge bg-pl-cont px-2 py-2 text-left text-xs text-pl-muted transition-colors"
+            >
+              <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-pl-sky/10 text-pl-sky">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-4 h-4" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="2" y="7" width="20" height="15" rx="2" ry="2"/>
+                  <polyline points="17 2 12 7 7 2"/>
+                </svg>
+              </span>
+              <span class="min-w-0">
+                <div class="font-label font-semibold">Captions</div>
+                <div class="font-label text-[10px] text-pl-faint">.srt format</div>
+              </span>
+            </button>
+            <button
+              type="button"
+              data-output="cleaned"
+              disabled
+              class="studioOutputBtn opacity-50 cursor-not-allowed flex items-start gap-2 rounded-2xl border border-pl-edge bg-pl-cont px-2 py-2 text-left text-xs text-pl-muted transition-colors"
+            >
+              <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-pl-faint/10 text-pl-muted">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-4 h-4" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M12 20h9"/>
+                  <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+                </svg>
+              </span>
+              <span class="min-w-0">
+                <div class="font-label font-semibold">Cleaned-up</div>
+                <div class="font-label text-[10px] text-pl-faint">AI · soon</div>
+              </span>
+            </button>
+            <button
+              type="button"
+              data-output="minutes"
+              disabled
+              class="studioOutputBtn opacity-50 cursor-not-allowed flex items-start gap-2 rounded-2xl border border-pl-edge bg-pl-cont px-2 py-2 text-left text-xs text-pl-muted transition-colors"
+            >
+              <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-pl-faint/10 text-pl-muted">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-4 h-4" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                  <circle cx="9" cy="7" r="4"/>
+                  <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                  <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                </svg>
+              </span>
+              <span class="min-w-0">
+                <div class="font-label font-semibold">Minutes</div>
+                <div class="font-label text-[10px] text-pl-faint">AI · soon</div>
+              </span>
+            </button>
+            <button
+              type="button"
+              data-output="summary"
+              disabled
+              class="studioOutputBtn opacity-50 cursor-not-allowed flex items-start gap-2 rounded-2xl border border-pl-edge bg-pl-cont px-2 py-2 text-left text-xs text-pl-muted transition-colors"
+            >
+              <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-pl-faint/10 text-pl-muted">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-4 h-4" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+                </svg>
+              </span>
+              <span class="min-w-0">
+                <div class="font-label font-semibold">Summary</div>
+                <div class="font-label text-[10px] text-pl-faint">AI · soon</div>
+              </span>
+            </button>
+          </div>
         </div>
 
         <!-- Preview area (scrollable) -->

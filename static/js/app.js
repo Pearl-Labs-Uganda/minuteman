@@ -524,15 +524,36 @@ function renderStudio() {
   } else {
     $("#studioWordCount").textContent = "";
   }
+  updateStudioOutputButtons();
 }
 
-// Output format selector
-document
-  .getElementById("outputSelect")
-  .addEventListener("change", (e) => {
-    state.activeOutput = e.target.value;
-    renderStudio();
+function updateStudioOutputButtons() {
+  document.querySelectorAll(".studioOutputBtn").forEach((button) => {
+    const type = button.dataset.output;
+    const isActive = type === state.activeOutput;
+    button.classList.toggle("bg-pl-sky/10", isActive);
+    button.classList.toggle("border-pl-sky/40", isActive);
+    button.classList.toggle("text-pl-text", isActive);
+    button.classList.toggle("bg-pl-cont", !isActive);
+    button.classList.toggle("border-pl-edge", !isActive);
+    button.classList.toggle("text-pl-muted", !isActive);
   });
+}
+
+function attachStudioOutputButtonHandlers() {
+  document.querySelectorAll(".studioOutputBtn").forEach((button) => {
+    button.addEventListener("click", () => {
+      if (button.disabled) return;
+      const type = button.dataset.output;
+      if (type !== state.activeOutput) {
+        state.activeOutput = type;
+        renderStudio();
+      }
+    });
+  });
+}
+
+attachStudioOutputButtonHandlers();
 
 $("#studioCopyBtn").addEventListener("click", async () => {
   const content = getOutputContent(state.activeOutput);
