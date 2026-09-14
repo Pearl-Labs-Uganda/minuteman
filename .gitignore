@@ -1,5 +1,11 @@
 .venv/
 __pycache__/
 *.pyc
-transcripts/
 .DS_Store
+
+# Local database + stored recordings and materials. Never commit these:
+# they hold account credentials and every user's uploaded files.
+data/
+
+# Legacy transcript dumps from before the database existed.
+transcripts/
